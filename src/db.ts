@@ -3,12 +3,20 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Item } from './types'
 import { ymd } from './lib/date'
 
+/** 삭제 기록: 다른 기기와 동기화할 때 지운 항목이 되살아나지 않게 한다 */
+export type Tombstone = { id: string; deletedAt: string }
+
 export const db = new Dexie('my-notion-calendar') as Dexie & {
   items: EntityTable<Item, 'id'>
+  tombstones: EntityTable<Tombstone, 'id'>
 }
 
 db.version(1).stores({
   items: 'id, type, start, due, updatedAt',
+})
+db.version(2).stores({
+  items: 'id, type, start, due, updatedAt',
+  tombstones: 'id, deletedAt',
 })
 
 const uid = () =>
@@ -39,7 +47,10 @@ export function updateItem(id: string, patch: Partial<Item>) {
 }
 
 export function deleteItem(id: string) {
-  return db.items.delete(id)
+  return db.transaction('rw', db.items, db.tombstones, async () => {
+    await db.items.delete(id)
+    await db.tombstones.put({ id, deletedAt: new Date().toISOString() })
+  })
 }
 
 export function useItems(): Item[] {

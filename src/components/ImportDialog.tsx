@@ -146,7 +146,7 @@ export function ImportDialog() {
           <Icon name="sparkle" size={18} className="text-accent" />
           <h2 className="text-[16px] font-semibold">{stage === 'review' ? '추출 결과 확인' : '이미지·파일에서 일정 가져오기'}</h2>
           <div className="flex-1" />
-          <button onClick={() => setSettings(true)} className="flex h-7 items-center gap-1 rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover" title="AI 설정">
+          <button onClick={() => setSettings(true, 'ai')} className="flex h-7 items-center gap-1 rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover" title="AI 설정">
             <Icon name="settings" size={15} /> 설정
           </button>
           <button onClick={close} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="닫기">
@@ -162,7 +162,7 @@ export function ImportDialog() {
                 <div className="flex-1">
                   스크린샷·사진·PDF를 읽으려면 <b>Claude API 키</b>가 필요해요. 키가 없어도 <b>.ics 파일</b>과 <b>한 줄에 하나씩 적은 텍스트</b>는 가져올 수 있어요.
                 </div>
-                <button onClick={() => setSettings(true)} className="shrink-0 rounded-[4px] px-2 py-0.5 font-medium underline underline-offset-2">
+                <button onClick={() => setSettings(true, 'ai')} className="shrink-0 rounded-[4px] px-2 py-0.5 font-medium underline underline-offset-2">
                   키 넣기
                 </button>
               </div>

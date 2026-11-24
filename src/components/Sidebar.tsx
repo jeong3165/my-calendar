@@ -6,6 +6,8 @@ import { allTags, colorVars, sectionTasks, tagColor } from '../lib/items'
 import { MiniCalendar } from './MiniCalendar'
 import { TaskList, sectionTitle } from './TaskList'
 import { Icon, Kbd, MOD, type IconName } from './ui'
+import { SyncLabel } from './SettingsDialog'
+import { syncNow, useSync } from '../lib/sync'
 
 const NAV: { s: Section; icon: IconName }[] = [
   { s: { kind: 'today' }, icon: 'today' },
@@ -97,6 +99,9 @@ export function Sidebar() {
         </div>
       </div>
 
+      {/* 동기화 상태 */}
+      <SyncButton onSetup={() => setSettings(true, 'sync')} />
+
       {/* 백업 */}
       <div className="flex gap-1 border-t border-line px-1.5 py-1.5">
         <button onClick={() => exportJSON()} className="flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-1.5 text-[12px] text-fg2 hover:bg-hover" title="모든 데이터를 JSON 파일로 저장">
@@ -105,7 +110,7 @@ export function Sidebar() {
         <button onClick={() => fileRef.current?.click()} className="flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-1.5 text-[12px] text-fg2 hover:bg-hover" title="백업 JSON 파일 불러오기">
           <Icon name="upload" size={14} /> 백업 열기
         </button>
-        <button onClick={() => setSettings(true)} className="grid w-8 place-items-center rounded-[6px] text-fg2 hover:bg-hover" title="AI 설정" aria-label="AI 설정">
+        <button onClick={() => setSettings(true, 'ai')} className="grid w-8 place-items-center rounded-[6px] text-fg2 hover:bg-hover" title="AI 설정" aria-label="AI 설정">
           <Icon name="settings" size={15} />
         </button>
         <input
@@ -135,5 +140,30 @@ export function Sidebar() {
       <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setSidebar(false)} />
       {body}
     </>
+  )
+}
+
+function SyncButton({ onSetup }: { onSetup: () => void }) {
+  const { status, error } = useSync()
+  const color =
+    status === 'error' ? 'var(--danger)' : status === 'syncing' ? 'var(--accent)' : status === 'idle' ? 'var(--c-green-bar)' : 'var(--text-tertiary)'
+  return (
+    <div className="flex items-center gap-1 border-t border-line px-1.5 pt-1.5">
+      <button
+        onClick={() => (status === 'off' ? onSetup() : void syncNow())}
+        title={status === 'error' ? `${error ?? ''}\n누르면 다시 시도해요.` : status === 'off' ? 'GitHub 비공개 저장소로 동기화 설정' : '누르면 지금 동기화해요'}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[12px] text-fg2 hover:bg-hover"
+      >
+        <span className={`h-2 w-2 shrink-0 rounded-full ${status === 'syncing' ? 'animate-pulse' : ''}`} style={{ background: color }} />
+        <span className="truncate">
+          {status === 'off' ? '동기화 꺼짐 · 설정하기' : <>GitHub <SyncLabel /></>}
+        </span>
+      </button>
+      {status !== 'off' && (
+        <button onClick={onSetup} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg3 hover:bg-hover" aria-label="동기화 설정" title="동기화 설정">
+          <Icon name="more" size={14} />
+        </button>
+      )}
+    </div>
   )
 }

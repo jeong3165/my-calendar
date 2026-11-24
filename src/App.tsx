@@ -11,6 +11,7 @@ import { TaskList } from './components/TaskList'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
+import { SyncAgent } from './components/SyncAgent'
 
 export default function App() {
   const { view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast } = useUI()
@@ -133,6 +134,7 @@ export default function App() {
 
   return (
     <div className="flex h-full">
+      <SyncAgent />
       <Sidebar />
       <main className="flex min-w-0 flex-1 flex-col">
         <Toolbar />

@@ -1,6 +1,6 @@
 import { addDays, addMonths, addWeeks, isSameDay } from 'date-fns'
 import { create } from 'zustand'
-import { createItem, db } from './db'
+import { createItem, db, deleteItem } from './db'
 import type { Item, Section, View } from './types'
 
 const mobileQuery = '(max-width: 767px)'
@@ -35,10 +35,11 @@ type UI = {
   importOpen: boolean
   importSeed: { files: File[]; text: string; tick: number }
   settingsOpen: boolean
+  settingsTab: 'ai' | 'sync'
   toast: string | null
   openImport: (files?: File[], text?: string) => void
   closeImport: () => void
-  setSettings: (open: boolean) => void
+  setSettings: (open: boolean, tab?: 'ai' | 'sync') => void
   showToast: (msg: string) => void
 }
 
@@ -46,7 +47,7 @@ type UI = {
 async function discardIfEmptyDraft(draftId: string | null) {
   if (!draftId) return
   const it = await db.items.get(draftId)
-  if (it && !it.title.trim() && !it.note?.trim()) await db.items.delete(draftId)
+  if (it && !it.title.trim() && !it.note?.trim()) await deleteItem(draftId)
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined
@@ -88,11 +89,12 @@ export const useUI = create<UI>((set, get) => ({
   importOpen: false,
   importSeed: { files: [], text: '', tick: 0 },
   settingsOpen: false,
+  settingsTab: 'ai',
   toast: null,
   openImport: (files = [], text = '') =>
     set((s) => ({ importOpen: true, paletteOpen: false, importSeed: { files, text, tick: s.importSeed.tick + 1 } })),
   closeImport: () => set({ importOpen: false }),
-  setSettings: (settingsOpen) => set({ settingsOpen }),
+  setSettings: (settingsOpen, tab) => set((s) => ({ settingsOpen, settingsTab: tab ?? s.settingsTab })),
   showToast: (toast) => {
     set({ toast })
     clearTimeout(toastTimer)
