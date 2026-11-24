@@ -148,7 +148,8 @@ function SyncButton({ onSetup }: { onSetup: () => void }) {
   const color =
     status === 'error' ? 'var(--danger)' : status === 'syncing' ? 'var(--accent)' : status === 'idle' ? 'var(--c-green-bar)' : 'var(--text-tertiary)'
   return (
-    <div className="flex items-center gap-1 border-t border-line px-1.5 pt-1.5">
+    <div className="border-t border-line px-1.5 pt-1.5">
+    <div className="flex items-center gap-1">
       <button
         onClick={() => (status === 'off' ? onSetup() : void syncNow())}
         title={status === 'error' ? `${error ?? ''}\n누르면 다시 시도해요.` : status === 'off' ? 'GitHub 비공개 저장소로 동기화 설정' : '누르면 지금 동기화해요'}
@@ -164,6 +165,12 @@ function SyncButton({ onSetup }: { onSetup: () => void }) {
           <Icon name="more" size={14} />
         </button>
       )}
+    </div>
+    {status === 'error' && error && (
+      <button onClick={onSetup} className="mx-2 mb-1 block max-h-32 overflow-y-auto rounded-[6px] px-2 py-1.5 text-left text-[12px] leading-snug text-danger" style={{ background: 'var(--c-red-bg)' }}>
+        {error}
+      </button>
+    )}
     </div>
   )
 }

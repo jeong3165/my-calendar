@@ -68,10 +68,17 @@ async function gh(s: Pick<SyncSettings, 'token'>, path: string, init: RequestIni
   if (res.ok) return res
   const body = await res.json().catch(() => ({}) as { message?: string })
   const msg: string = body?.message ?? ''
-  if (res.status === 401) throw new GitHubError(401, '토큰이 올바르지 않거나 만료됐어요. 새 토큰을 넣어 주세요.')
-  if (res.status === 403 && /rate limit/i.test(msg)) throw new GitHubError(403, 'GitHub 요청 한도를 넘었어요. 잠시 후 다시 시도해요.')
-  if (res.status === 403) throw new GitHubError(403, '이 토큰에 저장소 쓰기 권한(Contents: Read and write)이 없어요.')
-  throw new GitHubError(res.status, msg || `GitHub 오류 (${res.status})`)
+  const raw = msg ? ` (GitHub: ${msg})` : ''
+  if (res.status === 401) throw new GitHubError(401, `토큰이 올바르지 않거나 만료됐어요. 새 토큰을 넣어 주세요.${raw}`)
+  if (res.status === 403 && /rate limit/i.test(msg)) throw new GitHubError(403, `GitHub 요청 한도를 넘었어요. 잠시 후 다시 시도해요.${raw}`)
+  if (res.status === 403)
+    throw new GitHubError(
+      403,
+      init.method && init.method !== 'GET'
+        ? `토큰에 쓰기 권한이 없어요. GitHub → Settings → Developer settings → Fine-grained tokens → 이 토큰 → Edit 에서 Repository permissions 의 Contents 를 "Read and write" 로 바꿔 주세요. 토큰 값은 그대로라 다시 넣을 필요 없어요.${raw}`
+        : `토큰에 이 저장소를 읽을 권한이 없어요. 토큰의 Repository access 에 데이터 저장소를 고르고, Contents 를 "Read and write" 로 주세요.${raw}`,
+    )
+  throw new GitHubError(res.status, `${msg || 'GitHub 오류'} (${res.status})`)
 }
 
 const enc = (path: string) => path.split('/').map(encodeURIComponent).join('/')
@@ -101,6 +108,12 @@ export async function testConnection(s: SyncSettings): Promise<string> {
   if (!repo.private) throw new Error('공개 저장소에는 일정을 저장할 수 없어요. 비공개(Private) 저장소를 써 주세요.')
   if (repo.permissions && repo.permissions.push === false) throw new Error('이 토큰으로는 저장소에 쓸 수 없어요. Contents 권한을 "Read and write" 로 주세요.')
   const remote = await pull(s)
+  // 쓰기 권한 확인: 어디에도 연결되지 않는 빈 Git 객체를 하나 만들어 본다 (저장소 내용·기록에는 영향 없음)
+  try {
+    await gh(s, `/repos/${s.repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: '', encoding: 'utf-8' }) })
+  } catch (e) {
+    if (!(e instanceof GitHubError && e.status === 409)) throw e // 409 = 아직 빈 저장소 → 첫 동기화 때 확인
+  }
   return remote ? `연결됐어요. 저장된 항목 ${remote.data.items.length}개가 있어요.` : '연결됐어요. 아직 저장된 데이터가 없어서 첫 동기화 때 파일을 만들어요.'
 }
 

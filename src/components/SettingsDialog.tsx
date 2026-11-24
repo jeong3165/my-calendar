@@ -144,7 +144,7 @@ function SyncTab() {
           {msg.text}
         </p>
       )}
-      {s.enabled && !msg && (
+      {s.enabled && (
         <p className="text-[13px] text-fg2">
           현재 상태: <SyncLabel />
           {st.error && <span className="block text-danger">{st.error}</span>}
