@@ -97,6 +97,8 @@ export function parseQuick(input: string, now = new Date()): Parsed {
     ],
     [/(\d+)\s*일\s*(?:후|뒤)/, (m) => addDays(today, +m[1])],
     [/(오늘|금일)/, () => today],
+    [/(어제)/, () => addDays(today, -1)],
+    [/(그저께|그제)/, () => addDays(today, -2)],
     [/(내일|낼)/, () => addDays(today, 1)],
     [/(모레)/, () => addDays(today, 2)],
     [/(글피)/, () => addDays(today, 3)],

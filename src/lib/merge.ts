@@ -1,4 +1,4 @@
-import type { Item } from '../types'
+import type { Item, Journal } from '../types'
 import type { Tombstone } from '../db'
 
 /** GitHub 비공개 저장소에 저장되는 파일 형식 */
@@ -8,6 +8,7 @@ export type SyncFile = {
   updatedAt: string
   items: Item[]
   deleted: Record<string, string> // id → 삭제 시각
+  journal?: Journal[] // 하루 기록 (날짜별, 나중에 고친 쪽이 이김)
 }
 
 const KEEP_TOMBSTONE_DAYS = 180
@@ -19,10 +20,10 @@ const KEEP_TOMBSTONE_DAYS = 180
  * - 오래된 삭제 기록은 정리
  */
 export function mergeData(
-  local: { items: Item[]; tombstones: Tombstone[] },
+  local: { items: Item[]; tombstones: Tombstone[]; journal?: Journal[] },
   remote: SyncFile | null,
   now = new Date(),
-): { items: Item[]; deleted: Record<string, string> } {
+): { items: Item[]; deleted: Record<string, string>; journal: Journal[] } {
   const deleted = new Map<string, string>()
   const addTomb = (id: string, at: string) => {
     const cur = deleted.get(id)
@@ -49,14 +50,21 @@ export function mergeData(
   const cutoff = new Date(now.getTime() - KEEP_TOMBSTONE_DAYS * 86400000).toISOString()
   for (const [id, at] of deleted) if (at < cutoff) deleted.delete(id)
 
+  const journal = new Map<string, Journal>()
+  for (const j of [...(remote?.journal ?? []), ...(local.journal ?? [])]) {
+    const cur = journal.get(j.date)
+    if (!cur || j.updatedAt > cur.updatedAt) journal.set(j.date, j)
+  }
+
   return {
+    journal: [...journal.values()].sort((a, b) => a.date.localeCompare(b.date)),
     items: [...items.values()].sort((a, b) => a.id.localeCompare(b.id)),
     deleted: Object.fromEntries([...deleted.entries()].sort(([a], [b]) => a.localeCompare(b))),
   }
 }
 
 /** 내용이 같은지 빠르게 비교하기 위한 지문 */
-export function signature(items: Pick<Item, 'id' | 'updatedAt'>[], deleted: Record<string, string> | Tombstone[]): string {
+export function signature(items: Pick<Item, 'id' | 'updatedAt'>[], deleted: Record<string, string> | Tombstone[], journal: Pick<Journal, 'date' | 'updatedAt'>[] = []): string {
   const i = items
     .map((x) => `${x.id}@${x.updatedAt}`)
     .sort()
@@ -64,5 +72,9 @@ export function signature(items: Pick<Item, 'id' | 'updatedAt'>[], deleted: Reco
   const d = (Array.isArray(deleted) ? deleted.map((t) => `${t.id}@${t.deletedAt}`) : Object.entries(deleted).map(([id, at]) => `${id}@${at}`))
     .sort()
     .join(',')
-  return `${i}|${d}`
+  const j = journal
+    .map((x) => `${x.date}@${x.updatedAt}`)
+    .sort()
+    .join(',')
+  return `${i}|${d}|${j}`
 }

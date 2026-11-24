@@ -193,8 +193,8 @@ async function syncOnce() {
   try {
     for (let attempt = 0; ; attempt++) {
       const remote = await pull(s)
-      const [items, tombstones] = await Promise.all([db.items.toArray(), db.tombstones.toArray()])
-      const merged = mergeData({ items, tombstones }, remote?.data ?? null)
+      const [items, tombstones, journal] = await Promise.all([db.items.toArray(), db.tombstones.toArray(), db.journal.toArray()])
+      const merged = mergeData({ items, tombstones, journal }, remote?.data ?? null)
 
       // 1) 이 기기에 반영
       const localById = new Map(items.map((i) => [i.id, i]))
@@ -202,8 +202,11 @@ async function syncOnce() {
       const toPut = merged.items.filter((m) => localById.get(m.id)?.updatedAt !== m.updatedAt)
       const toDelete = items.filter((i) => !mergedIds.has(i.id)).map((i) => i.id)
       const tombs = Object.entries(merged.deleted).map(([id, deletedAt]) => ({ id, deletedAt }))
-      if (toPut.length || toDelete.length || signature([], tombs) !== signature([], tombstones)) {
-        await db.transaction('rw', db.items, db.tombstones, async () => {
+      const localJ = new Map(journal.map((j) => [j.date, j.updatedAt]))
+      const jPut = merged.journal.filter((j) => localJ.get(j.date) !== j.updatedAt)
+      if (toPut.length || toDelete.length || jPut.length || signature([], tombs) !== signature([], tombstones)) {
+        await db.transaction('rw', db.items, db.tombstones, db.journal, async () => {
+          if (jPut.length) await db.journal.bulkPut(jPut)
           if (toPut.length) await db.items.bulkPut(toPut)
           if (toDelete.length) await db.items.bulkDelete(toDelete)
           await db.tombstones.clear()
@@ -212,8 +215,8 @@ async function syncOnce() {
       }
 
       // 2) 저장소에 반영 (바뀐 게 있을 때만 커밋)
-      const sig = signature(merged.items, merged.deleted)
-      const remoteSig = remote ? signature(remote.data.items, remote.data.deleted) : null
+      const sig = signature(merged.items, merged.deleted, merged.journal)
+      const remoteSig = remote ? signature(remote.data.items, remote.data.deleted, remote.data.journal ?? []) : null
       if (sig !== remoteSig) {
         try {
           await push(s, { app: 'my-notion-calendar', version: 1, updatedAt: new Date().toISOString(), ...merged }, remote?.sha ?? null)
@@ -233,6 +236,6 @@ async function syncOnce() {
 
 /** 현재 로컬 데이터 지문 (바뀌었는지 확인용) */
 export async function localSignature() {
-  const [items, tombstones] = await Promise.all([db.items.toArray(), db.tombstones.toArray()])
-  return signature(items, tombstones)
+  const [items, tombstones, journal] = await Promise.all([db.items.toArray(), db.tombstones.toArray(), db.journal.toArray()])
+  return signature(items, tombstones, journal)
 }

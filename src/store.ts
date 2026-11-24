@@ -39,6 +39,10 @@ type UI = {
   resetFilters: () => void
   setSort: (s: Sort) => void
   setBoardGroup: (g: 'status' | 'priority') => void
+  daySub: 'plan' | 'review' | 'week'
+  dayDate: Date
+  setDaySub: (s: 'plan' | 'review' | 'week') => void
+  setDayDate: (d: Date) => void
 
   view: View
   date: Date
@@ -94,7 +98,16 @@ export const useUI = create<UI>((set, get) => ({
   filters: { ...DEFAULT_FILTERS, ...prefs.filters },
   sort: prefs.sort ?? { key: 'date', dir: 'asc' },
   boardGroup: prefs.boardGroup ?? 'status',
-  setMode: (mode) => set({ mode }),
+  setMode: (mode) =>
+    set((s) => ({
+      mode,
+      // 하루 탭을 열 때: 오후 3시 전이면 아침 계획, 그 뒤면 하루 정리
+      ...(mode === 'day' && s.mode !== 'day' ? { daySub: new Date().getHours() < 15 ? 'plan' : 'review', dayDate: new Date() } : {}),
+    })),
+  daySub: new Date().getHours() < 15 ? 'plan' : 'review',
+  dayDate: new Date(),
+  setDaySub: (daySub) => set({ daySub }),
+  setDayDate: (dayDate) => set({ dayDate }),
   setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),
   resetFilters: () => set((s) => ({ filters: { ...DEFAULT_FILTERS, type: s.filters.type } })),
   setSort: (sort) => set({ sort }),

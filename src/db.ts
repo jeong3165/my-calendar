@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Item } from './types'
+import type { Item, Journal } from './types'
 import { ymd } from './lib/date'
 import { loadNotify } from './lib/notify'
 
@@ -10,6 +10,7 @@ export type Tombstone = { id: string; deletedAt: string }
 export const db = new Dexie('my-notion-calendar') as Dexie & {
   items: EntityTable<Item, 'id'>
   tombstones: EntityTable<Tombstone, 'id'>
+  journal: EntityTable<Journal, 'date'>
 }
 
 db.version(1).stores({
@@ -18,6 +19,11 @@ db.version(1).stores({
 db.version(2).stores({
   items: 'id, type, start, due, updatedAt',
   tombstones: 'id, deletedAt',
+})
+db.version(3).stores({
+  items: 'id, type, start, due, updatedAt',
+  tombstones: 'id, deletedAt',
+  journal: 'date, updatedAt',
 })
 
 const uid = () =>
@@ -50,7 +56,27 @@ export async function createItem(patch: Partial<Item> & Pick<Item, 'type'>): Pro
 
 /** undefined 값을 넘기면 해당 필드는 삭제된다 (Dexie 동작). */
 export function updateItem(id: string, patch: Partial<Item>) {
-  return db.items.update(id, { ...patch, updatedAt: new Date().toISOString() })
+  const now = new Date().toISOString()
+  // 완료 시각 기록 (하루 정리에서 '오늘 끝낸 일'을 알기 위해)
+  const extra: Partial<Item> = 'done' in patch && !('doneAt' in patch) ? { doneAt: patch.done ? now : undefined } : {}
+  return db.items.update(id, { ...patch, ...extra, updatedAt: now })
+}
+
+/* ───────── 하루 기록 ───────── */
+export function useJournal(date: string): Journal | undefined {
+  return useLiveQuery(() => db.journal.get(date), [date])
+}
+export function useJournals(from: string, to: string): Journal[] {
+  return useLiveQuery(() => db.journal.where('date').between(from, to, true, true).toArray(), [from, to]) ?? EMPTY_J
+}
+const EMPTY_J: Journal[] = []
+
+export function saveJournal(date: string, patch: Partial<Journal>) {
+  // 읽고-쓰기를 한 트랜잭션으로 묶어 연달아 저장해도 서로 덮어쓰지 않게 한다
+  return db.transaction('rw', db.journal, async () => {
+    const cur = await db.journal.get(date)
+    await db.journal.put({ ...cur, ...patch, date, updatedAt: new Date().toISOString() })
+  })
 }
 
 export function deleteItem(id: string) {
@@ -67,8 +93,8 @@ const EMPTY: Item[] = []
 
 /* ───────── 백업: 내보내기 / 가져오기 ───────── */
 export async function exportJSON() {
-  const items = await db.items.toArray()
-  const blob = new Blob([JSON.stringify({ app: 'my-notion-calendar', version: 1, exportedAt: new Date().toISOString(), items }, null, 2)], {
+  const [items, journal] = await Promise.all([db.items.toArray(), db.journal.toArray()])
+  const blob = new Blob([JSON.stringify({ app: 'my-notion-calendar', version: 1, exportedAt: new Date().toISOString(), items, journal }, null, 2)], {
     type: 'application/json',
   })
   const url = URL.createObjectURL(blob)
@@ -98,5 +124,7 @@ export async function importJSON(file: File): Promise<number> {
       updatedAt: it.updatedAt ?? now,
     })),
   )
+  const journal: Journal[] = Array.isArray(data?.journal) ? data.journal.filter((j: Journal) => j && typeof j.date === 'string') : []
+  if (journal.length) await db.journal.bulkPut(journal.map((j) => ({ ...j, updatedAt: j.updatedAt ?? now })))
   return items.length
 }

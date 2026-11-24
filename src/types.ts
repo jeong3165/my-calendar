@@ -32,6 +32,7 @@ export type Item = {
   due?: string
   done?: boolean
   doing?: boolean // 할 일: 진행 중 (보드의 가운데 칸)
+  doneAt?: string // 할 일을 완료한 시각 (하루 정리용)
   priority?: Priority
   tags: string[]
   color: NotionColor
@@ -65,7 +66,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export type View = 'month' | 'week' | 'day'
-export type Mode = 'calendar' | 'table' | 'board'
+export type Mode = 'calendar' | 'table' | 'board' | 'day'
 export type Status = 'todo' | 'doing' | 'done'
 export const STATUS_LABEL: Record<Status, string> = { todo: '할 일', doing: '진행 중', done: '완료' }
 
@@ -75,3 +76,16 @@ export type Section =
   | { kind: 'upcoming' }
   | { kind: 'done' }
   | { kind: 'tag'; tag: string }
+
+/** 하루 기록 (아침 계획 + 저녁 회고). 주간 회고는 key 가 'week:YYYY-MM-DD'(월요일) */
+export type Journal = {
+  date: string
+  planned?: string[] // 아침에 계획한 항목 id (반복 회차는 'id::날짜')
+  plannedAt?: string
+  plannedMinutes?: number // 계획한 시간 블록 합 (분)
+  mood?: number // 1~5
+  note?: string // 한 줄 회고
+  good?: string // 잘한 점
+  better?: string // 아쉬운 점
+  updatedAt: string
+}

@@ -1,4 +1,4 @@
-import { format, isSameMonth, isSameYear } from 'date-fns'
+import { addDays, format, isSameMonth, isSameYear, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useUI } from '../store'
 import type { Mode, View } from '../types'
@@ -27,11 +27,30 @@ const MODES: { m: Mode; label: string; icon: IconName; key: string }[] = [
   { m: 'calendar', label: '캘린더', icon: 'calendar', key: 'M/W/D' },
   { m: 'table', label: '표', icon: 'table', key: 'L' },
   { m: 'board', label: '보드', icon: 'board', key: 'B' },
+  { m: 'day', label: '하루', icon: 'sun', key: 'P' },
 ]
+const DAY_SUBS = [
+  ['plan', '아침 계획'],
+  ['review', '하루 정리'],
+  ['week', '주간 리뷰'],
+] as const
 
 export function Toolbar() {
-  const { mode, setMode, view, date, setView, shift, goToday, sidebarOpen, toggleSidebar, newEvent, isMobile, openImport, open } = useUI()
-  const t = mode === 'calendar' ? title(view, date) : mode === 'table' ? { main: '모든 항목', sub: '일정과 할 일을 표로' } : { main: '할 일 보드', sub: '끌어다 놓아 상태 바꾸기' }
+  const { mode, setMode, view, date, setView, shift, goToday, sidebarOpen, toggleSidebar, newEvent, isMobile, openImport, open, daySub, setDaySub, dayDate, setDayDate } = useUI()
+  const weekStart = startOfWeek(dayDate, { weekStartsOn: 1 })
+  const t =
+    mode === 'calendar'
+      ? title(view, date)
+      : mode === 'table'
+        ? { main: '모든 항목', sub: '일정과 할 일을 표로' }
+        : mode === 'board'
+          ? { main: '할 일 보드', sub: '끌어다 놓아 상태 바꾸기' }
+          : daySub === 'plan'
+            ? { main: '아침 계획', sub: format(new Date(), 'M월 d일 EEEE', { locale: ko }) }
+            : daySub === 'review'
+              ? { main: '하루 정리', sub: format(dayDate, 'yyyy년 M월 d일 EEEE', { locale: ko }) }
+              : { main: '주간 리뷰', sub: `${format(weekStart, 'M월 d일')} – ${format(addDays(weekStart, 6), 'M월 d일')}` }
+  const dayStep = (dir: 1 | -1) => setDayDate(addDays(dayDate, daySub === 'week' ? 7 * dir : dir))
 
   async function newTask() {
     const it = await createItem({ type: 'task' })
@@ -113,6 +132,37 @@ export function Toolbar() {
                     className={`h-6 rounded-[5px] px-2.5 text-[13px] transition-colors ${view === v ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
                   >
                     {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : mode === 'day' ? (
+            <>
+              {daySub !== 'plan' && (
+                <>
+                  <button onClick={() => setDayDate(new Date())} className="h-7 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover">
+                    {daySub === 'week' ? '이번 주' : '오늘'}
+                  </button>
+                  <div className="flex">
+                    <button onClick={() => dayStep(-1)} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="이전">
+                      <Icon name="left" size={17} />
+                    </button>
+                    <button onClick={() => dayStep(1)} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="다음">
+                      <Icon name="right" size={17} />
+                    </button>
+                  </div>
+                </>
+              )}
+              <div className="flex rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="하루 보기">
+                {DAY_SUBS.map(([k, l]) => (
+                  <button
+                    key={k}
+                    role="tab"
+                    aria-selected={daySub === k}
+                    onClick={() => setDaySub(k)}
+                    className={`h-6 rounded-[5px] px-2.5 text-[13px] ${daySub === k ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
+                  >
+                    {l}
                   </button>
                 ))}
               </div>
