@@ -43,6 +43,18 @@ export function SettingsDialog() {
 }
 
 /* ───────── GitHub 동기화 ───────── */
+/** 저장소 입력 정리: 주소 전체를 붙여넣어도 "아이디/이름"만 남긴다 (입력 중에는 건드리지 않음) */
+export function normalizeRepo(v: string) {
+  return v
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+    .replace(/^git@github\.com:/i, '')
+    .replace(/\.git$/i, '')
+    .replace(/\/+$/, '')
+    .split('/')
+    .slice(0, 2)
+    .join('/')
+}
 function SyncTab() {
   const { setSettings, showToast } = useUI()
   const [s, setS] = useState(loadSync)
@@ -54,8 +66,10 @@ function SyncTab() {
   async function test() {
     setBusy(true)
     setMsg(null)
+    const clean = { ...s, repo: normalizeRepo(s.repo) }
+    setS(clean)
     try {
-      setMsg({ ok: true, text: await testConnection(s) })
+      setMsg({ ok: true, text: await testConnection(clean) })
       return true
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message })
@@ -67,7 +81,7 @@ function SyncTab() {
 
   async function enable() {
     if (!(await test())) return
-    const next = { ...s, enabled: true }
+    const next = { ...s, repo: normalizeRepo(s.repo), enabled: true }
     saveSync(next)
     setS(next)
     useSync.setState({ status: 'idle', lastSig: null })
@@ -114,7 +128,8 @@ function SyncTab() {
       <Row label="저장소 (아이디/이름)">
         <input
           value={s.repo}
-          onChange={(e) => setS({ ...s, repo: e.target.value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$|\/$/g, '') })}
+          onChange={(e) => setS({ ...s, repo: e.target.value })}
+          onBlur={() => setS((cur) => ({ ...cur, repo: normalizeRepo(cur.repo) }))}
           placeholder="jeong3165/my-calendar-data"
           spellCheck={false}
           className="w-full bg-transparent px-3 py-2 font-mono text-[13px] outline-none"
