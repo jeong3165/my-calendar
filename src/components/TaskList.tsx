@@ -6,6 +6,7 @@ import { PRIORITY_LABEL } from '../types'
 import { hm, relDay, ymd } from '../lib/date'
 import { colorVars, sectionTasks, tagColor, taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
+import { repeatLabel } from '../lib/recur'
 import { Checkbox, Icon, toggleDone } from './ui'
 
 export const sectionTitle = (s: Section) =>
@@ -121,7 +122,7 @@ function QuickAdd({ section }: { section: Section }) {
           className="min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none"
         />
       </label>
-      {parsed && (parsed.date || parsed.tags.length > 0 || parsed.priority) && (
+      {parsed && (parsed.date || parsed.tags.length > 0 || parsed.priority || parsed.repeat) && (
         <div className="flex flex-wrap gap-1 px-2 pt-1 text-[11px] text-fg2">
           {parsed.date && (
             <span className="tnum rounded-[3px] bg-accent-soft px-1 text-accent">
@@ -136,6 +137,7 @@ function QuickAdd({ section }: { section: Section }) {
             </span>
           ))}
           {parsed.priority && <span className="rounded-[3px] bg-hover px-1">우선순위 {PRIORITY_LABEL[parsed.priority]}</span>}
+          {parsed.repeat && <span className="rounded-[3px] bg-hover px-1">↻ {repeatLabel(parsed.repeat, parsed.date ? ymd(parsed.date) : undefined)}</span>}
         </div>
       )}
     </div>

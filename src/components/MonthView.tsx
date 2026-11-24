@@ -1,6 +1,8 @@
 import { useState, type DragEvent } from 'react'
 import { addDays, differenceInCalendarDays, format, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
-import { createItem, updateItem, useItems } from '../db'
+import { useMemo } from 'react'
+import { createItem, useItems } from '../db'
+import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { dayItems, isTimed } from '../lib/items'
@@ -9,25 +11,28 @@ import { ItemChip } from './ui'
 const MAX = 3
 
 export function MonthView() {
-  const items = useItems()
+  const all = useItems()
   const { date, open, selectedId, setDate, setView } = useUI()
   const [over, setOver] = useState<string | null>(null)
   const first = startOfWeek(startOfMonth(date), WEEK)
   const days = Array.from({ length: 42 }, (_, i) => addDays(first, i))
+  const firstKey = ymd(first)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const items = useMemo(() => expandItems(all, first, addDays(first, 42)), [all, firstKey])
 
   async function onDrop(e: DragEvent, day: Date) {
     e.preventDefault()
     setOver(null)
     const id = e.dataTransfer.getData('application/x-item')
-    const it = items.find((x) => x.id === id)
+    const it = resolveItem(all, id)
     if (!it) return
     if (it.start) {
       // 시간/종일 일정 → 날짜만 옮기고 시각과 길이는 유지
       const diff = differenceInCalendarDays(day, new Date(it.start))
       const shift = (iso?: string) => (iso ? addDays(new Date(iso), diff).toISOString() : undefined)
-      await updateItem(id, { start: shift(it.start), end: shift(it.end), ...(it.type === 'task' && it.due ? { due: ymd(day) } : {}) })
+      await updateSmart(it, { start: shift(it.start), end: shift(it.end), ...(it.type === 'task' && it.due ? { due: ymd(day) } : {}) })
     } else if (it.type === 'task') {
-      await updateItem(id, { due: ymd(day) })
+      await updateSmart(it, { due: ymd(day) })
     }
   }
 

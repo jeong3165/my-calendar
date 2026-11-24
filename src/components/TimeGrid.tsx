@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type DragEvent } from 'react'
 import { addDays, differenceInCalendarDays, format, isToday, startOfDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { createItem, updateItem, useItems } from '../db'
+import { createItem, useItems } from '../db'
+import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
 import type { Item } from '../types'
 import { atMinutes, hm, ymd } from '../lib/date'
 import { dayItems, layoutColumns, timedSegment, isTimed } from '../lib/items'
-import { Checkbox, ItemChip, toggleDone } from './ui'
+import { Checkbox, Icon, ItemChip, toggleDone } from './ui'
 
 const H = 48 // 1시간 높이(px)
 const SNAP = 15
@@ -29,8 +30,9 @@ function useNow() {
 }
 
 export function TimeGrid({ days }: { days: Date[] }) {
-  const items = useItems()
+  const all = useItems()
   const { open, selectedId, setDate, setView } = useUI()
+  const items = useMemo(() => expandItems(all, days[0], addDays(days[days.length - 1], 1)), [all, days])
   const scrollRef = useRef<HTMLDivElement>(null)
   const colsRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -103,10 +105,11 @@ export function TimeGrid({ days }: { days: Date[] }) {
     } else if (d.kind === 'move') {
       if (!d.moved) return open(d.item.id)
       const r = moveRange(d.item, d.dDay, d.dMin)
-      await updateItem(d.item.id, r)
+      const nid = await updateSmart(d.item, r)
+      if (nid && selectedId === d.item.id) open(nid)
     } else {
       const r = resizeRange(d.item, days[d.endDay], d.endMin)
-      await updateItem(d.item.id, r)
+      await updateSmart(d.item, r)
     }
   }
 
@@ -132,23 +135,23 @@ export function TimeGrid({ days }: { days: Date[] }) {
     const id = e.dataTransfer.getData('application/x-item')
     const at = dropAt
     setDropAt(null)
-    const it = items.find((x) => x.id === id)
+    const it = resolveItem(all, id)
     if (!it || !at) return
     const dur = isTimed(it) ? new Date(it.end!).getTime() - new Date(it.start!).getTime() : (it.type === 'task' ? 30 : 60) * 60000
     const s = atMinutes(days[at.day], at.min)
-    await updateItem(id, { start: s.toISOString(), end: new Date(s.getTime() + dur).toISOString(), allDay: undefined })
+    await updateSmart(it, { start: s.toISOString(), end: new Date(s.getTime() + dur).toISOString(), allDay: undefined })
   }
 
   async function onAllDayDrop(e: DragEvent, day: Date) {
     e.preventDefault()
     setAllDayDrop(null)
     const id = e.dataTransfer.getData('application/x-item')
-    const it = items.find((x) => x.id === id)
+    const it = resolveItem(all, id)
     if (!it) return
-    if (it.type === 'task') await updateItem(id, { due: ymd(day), start: undefined, end: undefined, allDay: undefined })
+    if (it.type === 'task') await updateSmart(it, { due: ymd(day), start: undefined, end: undefined, allDay: undefined })
     else {
       const span = it.allDay && it.start && it.end ? differenceInCalendarDays(new Date(it.end), new Date(it.start)) : 0
-      await updateItem(id, { allDay: true, start: startOfDay(day).toISOString(), end: addDays(startOfDay(day), span).toISOString() })
+      await updateSmart(it, { allDay: true, start: startOfDay(day).toISOString(), end: addDays(startOfDay(day), span).toISOString() })
     }
   }
 
@@ -276,6 +279,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                             </span>
                           )}
                           <span className={`min-w-0 font-medium ${height < 30 ? 'truncate' : 'line-clamp-2'} ${it.done ? 'line-through opacity-60' : ''}`}>
+                            {it.occ && <Icon name="repeat" size={10} className="mr-0.5 inline opacity-60" />}
                             {it.title || '제목 없음'}
                             {height < 30 && <span className="tnum ml-1 font-normal opacity-70">{hm(new Date(it.start!))}</span>}
                           </span>

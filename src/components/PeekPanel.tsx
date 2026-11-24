@@ -1,17 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { addDays, addMinutes, differenceInCalendarDays, startOfDay } from 'date-fns'
-import { deleteItem, updateItem, useItems } from '../db'
+import { updateItem, useItems } from '../db'
 import { useUI } from '../store'
 import type { Item, Priority } from '../types'
 import { COLORS, COLOR_LABEL, PRIORITY_LABEL } from '../types'
 import { parseYmd, toLocalInput, ymd } from '../lib/date'
 import { allTags, colorVars, isTimed, tagColor } from '../lib/items'
 import { Checkbox, Icon, type IconName } from './ui'
+import { baseDate, changeOccurrence, deleteSmart, isRecurring, repeatLabel, resolveItem, toggleOccurrenceDone, touchesTime, updateSmart } from '../lib/recur'
+import { RemindEditor, RepeatEditor } from './PeekExtras'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 export function PeekPanel() {
   const { selectedId, close, isMobile } = useUI()
   const items = useItems()
-  const item = items.find((i) => i.id === selectedId)
+  const item = selectedId ? resolveItem(items, selectedId) : undefined
   if (!item) return null
   return (
     <aside
@@ -22,13 +26,19 @@ export function PeekPanel() {
         <button onClick={close} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="닫기" title="닫기 (Esc)">
           <Icon name={isMobile ? 'x' : 'collapse'} size={16} className={isMobile ? '' : 'rotate-180'} />
         </button>
-        <span className="text-[13px] text-fg3">{item.type === 'event' ? '일정' : '할 일'}</span>
+        <span className="flex items-center gap-1 text-[13px] text-fg3">
+          {item.type === 'event' ? '일정' : '할 일'}
+          {(item.occ || isRecurring(item)) && (
+            <>
+              · <Icon name="repeat" size={12} /> 반복
+            </>
+          )}
+        </span>
         <div className="flex-1" />
         <button
           onClick={async () => {
-            if (!confirm(`'${item.title || '제목 없음'}'을(를) 삭제할까요?`)) return
-            close()
-            await deleteItem(item.id)
+            if (!item.occ && !confirm(`'${item.title || '제목 없음'}'을(를) 삭제할까요?${isRecurring(item) ? '\n반복 일정 전체가 삭제돼요.' : ''}`)) return
+            if (await deleteSmart(item)) close()
           }}
           className="flex h-7 items-center gap-1 rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover hover:text-danger"
         >
@@ -52,7 +62,28 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
   }, [])
   useEffect(() => autoGrow(titleRef.current), [title])
 
-  const set = (patch: Partial<Item>) => updateItem(item.id, patch)
+  const { open, setSettings } = useUI()
+  const occ = item.occ
+  const series = occ ? allItems.find((i) => i.id === occ.seriesId) : item
+  // 반복 회차의 날짜·시간 변경은 모아 두었다가 "적용"할 때 범위를 묻는다
+  const [pending, setPending] = useState<Partial<Item>>({})
+  const view: Item = { ...item, ...pending }
+
+  const set = (patch: Partial<Item>) => {
+    if (!occ) return updateItem(item.id, patch)
+    const timeKeys = ['start', 'end', 'allDay', 'due'] as const
+    const time = Object.fromEntries(Object.entries(patch).filter(([k]) => (timeKeys as readonly string[]).includes(k)))
+    const rest = Object.fromEntries(Object.entries(patch).filter(([k]) => !(timeKeys as readonly string[]).includes(k) && k !== 'done'))
+    if ('done' in patch && !!patch.done !== !!item.done) void toggleOccurrenceDone(item)
+    if (Object.keys(time).length) setPending((p) => ({ ...p, ...time }))
+    if (Object.keys(rest).length) return updateItem(occ.seriesId, rest)
+  }
+
+  async function applyPending() {
+    const nid = await updateSmart(item, pending)
+    setPending({})
+    if (nid) open(nid)
+  }
 
   function changeType(type: Item['type']) {
     if (type === item.type) return
@@ -91,6 +122,25 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
         />
       </div>
 
+      {occ && series?.repeat && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[8px] bg-hover px-3 py-2 text-[13px] text-fg2">
+          <Icon name="repeat" size={14} />
+          <span className="flex-1">
+            <b className="font-medium text-fg">{repeatLabel(series.repeat, baseDate(series))}</b> 중{' '}
+            {format(new Date(occ.date + 'T00:00:00'), 'M월 d일 (EEE)', { locale: ko })} 회차 · 제목·태그·메모는 모든 회차에 적용돼요
+          </span>
+          <button
+            onClick={async () => {
+              const nid = await changeOccurrence(item, {}, 'this')
+              if (nid) open(nid)
+            }}
+            className="rounded-[4px] px-1.5 py-0.5 font-medium text-accent hover:bg-hover"
+          >
+            이 회차만 따로 수정
+          </button>
+        </div>
+      )}
+
       {/* 속성 */}
       <div className="mt-4 flex flex-col gap-px">
         <Prop icon="type" label="유형">
@@ -100,11 +150,31 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
               ['event', '일정'],
               ['task', '할 일'],
             ]}
-            onChange={(v) => changeType(v as Item['type'])}
+            onChange={(v) => (occ ? alert('반복 일정의 유형은 반복 원본에서 바꿀 수 있어요. "이 회차만 따로 수정"을 누르거나 반복을 끈 뒤 바꿔 주세요.') : changeType(v as Item['type']))}
           />
         </Prop>
 
-        {item.type === 'event' ? <EventDates item={item} set={set} /> : <TaskDates item={item} set={set} />}
+        {view.type === 'event' ? <EventDates item={view} set={set} /> : <TaskDates item={view} set={set} />}
+
+        {occ && touchesTime(pending) && (
+          <div className="my-1 ml-[120px] flex flex-wrap items-center gap-2 rounded-[6px] bg-accent-soft px-2.5 py-1.5 text-[13px]">
+            <span className="flex-1">날짜·시간 변경을 적용할까요?</span>
+            <button onClick={() => setPending({})} className="rounded px-2 py-0.5 text-fg2 hover:bg-hover">
+              취소
+            </button>
+            <button onClick={applyPending} className="rounded bg-accent px-2.5 py-0.5 font-medium text-white">
+              적용…
+            </button>
+          </div>
+        )}
+
+        <Prop icon="repeat" label="반복">
+          {series && <RepeatEditor item={series} onRemoved={() => occ && open(occ.seriesId)} />}
+        </Prop>
+
+        <Prop icon="bell" label="알림">
+          {series && <RemindEditor item={series} timed={!!view.start && !view.allDay} onSetup={() => setSettings(true, 'notify')} />}
+        </Prop>
 
         {isTask && (
           <>

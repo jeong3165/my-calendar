@@ -3,6 +3,17 @@ export type NotionColor = (typeof COLORS)[number]
 
 export type Priority = 'high' | 'normal' | 'low'
 
+/** 반복 규칙 (RRULE 의 일부를 단순화) */
+export type Repeat = {
+  freq: 'daily' | 'weekly' | 'monthly' | 'yearly'
+  interval: number // n일/주/개월/년마다
+  byDay?: number[] // 매주: 0=월 … 6=일
+  monthly?: 'day' | 'nth' // 매월: 같은 날짜 / n번째 요일
+  nth?: number // monthly='nth' 일 때 1~4 번째, -1 = 마지막 (없으면 기준일로 계산)
+  until?: string // YYYY-MM-DD (포함)
+  count?: number // 총 횟수
+}
+
 /**
  * 일정(event)과 할 일(task)을 하나의 모델로 관리한다.
  * 할 일에 start/end 가 생기면 그대로 캘린더의 "시간 블록"이 된다.
@@ -24,6 +35,12 @@ export type Item = {
   tags: string[]
   color: NotionColor
   note?: string
+  repeat?: Repeat
+  exdates?: string[] // 반복에서 빠진 날짜 (YYYY-MM-DD)
+  doneDates?: string[] // 반복 할 일: 완료한 회차 날짜
+  remind?: number[] // 알림: 시작 몇 분 전 (종일은 0시 기준, 음수 = 그날 이후)
+  /** 화면용 반복 회차 정보 (저장하지 않음) */
+  occ?: { seriesId: string; date: string }
   createdAt: string
   updatedAt: string
 }

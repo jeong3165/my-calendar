@@ -2,6 +2,7 @@ import { addDays, startOfDay } from 'date-fns'
 import type { Item, NotionColor, Section } from '../types'
 import { COLORS } from '../types'
 import { ymd } from './date'
+import { instance, isRecurring, nextOccurrence, occurrences } from './recur'
 
 export const isTimed = (it: Item) => !!it.start && !!it.end && !it.allDay
 
@@ -46,7 +47,17 @@ const prioRank = { high: 0, normal: 1, low: 2 }
 
 export function sectionTasks(items: Item[], section: Section, now = new Date()): Item[] {
   const today = ymd(now)
-  const tasks = items.filter((it) => it.type === 'task')
+  const tomorrow = ymd(addDays(now, 1))
+  // 반복 할 일은 해당 회차로 바꿔서 보여준다 (오늘 → 오늘 회차, 그 외 → 다음 회차)
+  const tasks = items
+    .filter((it) => it.type === 'task')
+    .flatMap((t) => {
+      if (!isRecurring(t)) return [t]
+      if (section.kind === 'done') return []
+      if (section.kind === 'today') return occurrences(t, today, today).map((d) => instance(t, d))
+      const next = nextOccurrence(t, section.kind === 'upcoming' ? tomorrow : today)
+      return next ? [instance(t, next)] : []
+    })
   let list: Item[]
   switch (section.kind) {
     case 'today':

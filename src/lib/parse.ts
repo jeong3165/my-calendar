@@ -1,5 +1,5 @@
-import { addDays, addMinutes, startOfDay, startOfWeek } from 'date-fns'
-import type { Item, Priority } from '../types'
+import { addDays, addMinutes, addMonths, getDaysInMonth, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
+import type { Item, Priority, Repeat } from '../types'
 import { ymd } from './date'
 
 /**
@@ -15,6 +15,7 @@ export type Parsed = {
   end?: { h: number; m: number }
   tags: string[]
   priority?: Priority
+  repeat?: Repeat
 }
 
 const WD: Record<string, number> = { 월: 0, 화: 1, 수: 2, 목: 3, 금: 4, 토: 5, 일: 6 } // 월요일 기준 offset
@@ -60,6 +61,16 @@ export function parseQuick(input: string, now = new Date()): Parsed {
     priority = PRIO[p.toLowerCase()]
     return sp
   })
+
+  // ── 반복 ──
+  const rep = parseRepeat(s, today)
+  let repeatDate: Date | undefined
+  let repeat: Repeat | undefined
+  if (rep) {
+    s = rep.rest
+    repeat = rep.repeat
+    repeatDate = rep.date
+  }
 
   const rules: [RegExp, (m: RegExpMatchArray) => Date | null][] = [
     [/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/, (m) => new Date(+m[1], +m[2] - 1, +m[3])],
@@ -132,14 +143,17 @@ export function parseQuick(input: string, now = new Date()): Parsed {
       if (start) s = s.replace(one[0], ' ')
     }
   }
+  if (!date && repeatDate) date = repeatDate
   if (start && !date) date = today
+  if (repeat && !date) date = today
 
-  return { title: s.replace(/\s+/g, ' ').trim(), date, start, end, tags, priority }
+  return { title: s.replace(/\s+/g, ' ').trim(), date, start, end, tags, priority, repeat }
 }
 
 /** 해석 결과 → Item 필드 */
 export function parsedToItem(p: Parsed, type: Item['type']): Partial<Item> {
   const out: Partial<Item> = { title: p.title, tags: p.tags }
+  if (p.repeat) out.repeat = p.repeat
   if (p.priority) out.priority = p.priority
   if (!p.date) return out
   if (p.start) {
@@ -162,4 +176,110 @@ export function parsedToItem(p: Parsed, type: Item['type']): Partial<Item> {
     out.end = startOfDay(p.date).toISOString()
   }
   return out
+}
+
+/* ───────── 반복 표현 ─────────
+ * 매일 / 3일마다 / 평일 / 주말 / 매주 월요일 / 매주 월,수 / 격주 금요일 / 2주마다 화
+ * 매월 25일 / 매달 마지막 금요일 / 매월 첫째 주 월요일 / 매년 3월 1일
+ * + "12월 31일까지", "10회"
+ */
+const WDS = '월화수목금토일'
+const NTHS: Record<string, number> = { 첫째: 1, 첫: 1, 둘째: 2, 셋째: 3, 넷째: 4, 마지막: 5 }
+
+function parseRepeat(text: string, today: Date): { repeat: Repeat; date?: Date; rest: string } | null {
+  let s = text
+  let repeat: Repeat | undefined
+  let date: Date | undefined
+  const cut = (m: RegExpMatchArray, extra = 0) => {
+    s = s.slice(0, m.index!) + ' ' + s.slice(m.index! + m[0].length + extra)
+  }
+  const nextWeekday = (days: number[]) => {
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(today, i)
+      if (days.includes((d.getDay() + 6) % 7)) return d
+    }
+    return today
+  }
+
+  let m: RegExpMatchArray | null
+  if ((m = s.match(/(매주|격주|(\d+)\s*주\s*마다)/))) {
+    const interval = m[1] === '격주' ? 2 : m[2] ? Number(m[2]) : 1
+    // 뒤따르는 요일들 읽기: "월요일", "월, 수", "월·수·금"
+    let i = m.index! + m[0].length
+    const days: number[] = []
+    for (;;) {
+      const sep = s.slice(i).match(/^[\s,·/]*/)![0].length
+      const ch = s[i + sep]
+      const after = s.slice(i + sep + 1)
+      if (ch && WDS.includes(ch) && (/^요일/.test(after) || /^([\s,·/]|$)/.test(after) || WDS.includes(after[0] ?? ''))) {
+        days.push(WDS.indexOf(ch))
+        i += sep + 1 + (/^요일/.test(after) ? 2 : 0)
+        if (s.slice(i).startsWith('마다')) i += 2
+      } else break
+    }
+    const extra = i - (m.index! + m[0].length)
+    cut(m, extra)
+    repeat = { freq: 'weekly', interval, byDay: days.length ? [...new Set(days)].sort() : undefined }
+    if (days.length) date = nextWeekday(days)
+  } else if ((m = s.match(/평일(?:마다)?|주중/))) {
+    cut(m)
+    repeat = { freq: 'weekly', interval: 1, byDay: [0, 1, 2, 3, 4] }
+    date = nextWeekday([0, 1, 2, 3, 4])
+  } else if ((m = s.match(/주말(?:마다)?/))) {
+    cut(m)
+    repeat = { freq: 'weekly', interval: 1, byDay: [5, 6] }
+    date = nextWeekday([5, 6])
+  } else if ((m = s.match(/(매일|날마다|(\d+)\s*일\s*마다)/))) {
+    cut(m)
+    repeat = { freq: 'daily', interval: m[2] ? Number(m[2]) : 1 }
+  } else if ((m = s.match(/(매월|매달|(\d+)\s*개월\s*마다)\s*(첫째|첫|둘째|셋째|넷째|마지막)\s*주?\s*([월화수목금토일])요일/))) {
+    cut(m)
+    const nth = NTHS[m[3]]
+    repeat = { freq: 'monthly', interval: m[2] ? Number(m[2]) : 1, monthly: 'nth', nth: nth === 5 ? -1 : nth }
+    const wd = WDS.indexOf(m[4])
+    for (let k = 0; k < 3 && !date; k++) {
+      const mon = addMonths(startOfMonth(today), k)
+      let d: Date
+      if (nth === 5) {
+        d = new Date(mon.getFullYear(), mon.getMonth(), getDaysInMonth(mon))
+        while ((d.getDay() + 6) % 7 !== wd) d = addDays(d, -1)
+      } else {
+        d = new Date(mon)
+        while ((d.getDay() + 6) % 7 !== wd) d = addDays(d, 1)
+        d = addDays(d, (nth - 1) * 7)
+      }
+      if (d >= today && d.getMonth() === mon.getMonth()) date = d
+    }
+  } else if ((m = s.match(/(매월|매달|(\d+)\s*개월\s*마다)\s*(?:(\d{1,2})일)?/))) {
+    cut(m)
+    repeat = { freq: 'monthly', interval: m[2] ? Number(m[2]) : 1, monthly: 'day' }
+    if (m[3]) {
+      const day = Number(m[3])
+      let d = new Date(today.getFullYear(), today.getMonth(), day)
+      if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, day)
+      date = d
+    }
+  } else if ((m = s.match(/매년\s*(?:(\d{1,2})월\s*(\d{1,2})일)?/))) {
+    cut(m)
+    repeat = { freq: 'yearly', interval: 1 }
+    if (m[1]) {
+      let d = new Date(today.getFullYear(), Number(m[1]) - 1, Number(m[2]))
+      if (d < today) d = new Date(today.getFullYear() + 1, Number(m[1]) - 1, Number(m[2]))
+      date = d
+    }
+  }
+  if (!repeat) return null
+
+  // 끝: "12월 31일까지" / "2027-01-31까지" / "10회", "10번"
+  if ((m = s.match(/(?:(\d{4})[-./])?(\d{1,2})(?:월\s*|[-./])(\d{1,2})일?\s*까지/))) {
+    const y = m[1] ? Number(m[1]) : today.getFullYear()
+    let u = new Date(y, Number(m[2]) - 1, Number(m[3]))
+    if (!m[1] && u < today) u = new Date(y + 1, Number(m[2]) - 1, Number(m[3]))
+    repeat.until = `${u.getFullYear()}-${String(u.getMonth() + 1).padStart(2, '0')}-${String(u.getDate()).padStart(2, '0')}`
+    cut(m)
+  } else if ((m = s.match(/(\d{1,3})\s*(?:회|번)(?![가-힣])/))) {
+    repeat.count = Number(m[1])
+    cut(m)
+  }
+  return { repeat, date, rest: s }
 }

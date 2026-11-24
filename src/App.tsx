@@ -12,9 +12,11 @@ import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
 import { SyncAgent } from './components/SyncAgent'
+import { NotificationAgent } from './components/NotificationAgent'
+import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast } = useUI()
+  const { view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -41,6 +43,10 @@ export default function App() {
       if (mod && e.code === 'Backslash') {
         e.preventDefault()
         ui.toggleSidebar()
+        return
+      }
+      if (ui.scopePrompt) {
+        if (e.key === 'Escape') ui.scopePrompt.resolve(null)
         return
       }
       if (ui.settingsOpen || ui.importOpen) {
@@ -135,6 +141,7 @@ export default function App() {
   return (
     <div className="flex h-full">
       <SyncAgent />
+      <NotificationAgent />
       <Sidebar />
       <main className="flex min-w-0 flex-1 flex-col">
         <Toolbar />
@@ -154,6 +161,7 @@ export default function App() {
       {paletteOpen && <CommandPalette />}
       {importOpen && <ImportDialog />}
       {settingsOpen && <SettingsDialog />}
+      {scopePrompt && <ScopeDialog />}
       {fileOver && !importOpen && (
         <div className="pointer-events-none fixed inset-3 z-[90] grid place-items-center rounded-[16px] border-2 border-dashed border-accent bg-accent-soft backdrop-blur-[1px]">
           <div className="flex flex-col items-center gap-2 rounded-[12px] bg-popover px-6 py-4 shadow-pop">

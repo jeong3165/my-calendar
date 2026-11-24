@@ -3,6 +3,9 @@ import { create } from 'zustand'
 import { createItem, db, deleteItem } from './db'
 import type { Item, Section, View } from './types'
 
+export type Scope = 'this' | 'following' | 'all'
+type SettingsTab = 'ai' | 'sync' | 'notify'
+
 const mobileQuery = '(max-width: 767px)'
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia(mobileQuery).matches
 
@@ -35,11 +38,15 @@ type UI = {
   importOpen: boolean
   importSeed: { files: File[]; text: string; tick: number }
   settingsOpen: boolean
-  settingsTab: 'ai' | 'sync'
+  settingsTab: SettingsTab
   toast: string | null
   openImport: (files?: File[], text?: string) => void
   closeImport: () => void
-  setSettings: (open: boolean, tab?: 'ai' | 'sync') => void
+  setSettings: (open: boolean, tab?: SettingsTab) => void
+
+  // 반복 일정: 어디까지 바꿀지 묻기
+  scopePrompt: { kind: 'change' | 'delete'; resolve: (s: Scope | null) => void } | null
+  askScope: (kind: 'change' | 'delete') => Promise<Scope | null>
   showToast: (msg: string) => void
 }
 
@@ -91,6 +98,20 @@ export const useUI = create<UI>((set, get) => ({
   settingsOpen: false,
   settingsTab: 'ai',
   toast: null,
+  scopePrompt: null,
+  askScope: (kind) =>
+    new Promise((resolve) => {
+      get().scopePrompt?.resolve(null)
+      set({
+        scopePrompt: {
+          kind,
+          resolve: (v) => {
+            set({ scopePrompt: null })
+            resolve(v)
+          },
+        },
+      })
+    }),
   openImport: (files = [], text = '') =>
     set((s) => ({ importOpen: true, paletteOpen: false, importSeed: { files, text, tick: s.importSeed.tick + 1 } })),
   closeImport: () => set({ importOpen: false }),

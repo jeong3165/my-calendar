@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Item } from './types'
 import { ymd } from './lib/date'
+import { loadNotify } from './lib/notify'
 
 /** 삭제 기록: 다른 기기와 동기화할 때 지운 항목이 되살아나지 않게 한다 */
 export type Tombstone = { id: string; deletedAt: string }
@@ -37,6 +38,12 @@ export async function createItem(patch: Partial<Item> & Pick<Item, 'type'>): Pro
     ...(patch.type === 'task' ? { done: false, priority: 'normal' as const } : {}),
   }
   const item: Item = { ...base, ...patch }
+  // 새 일정에는 설정의 기본 알림을 붙인다 (할 일은 직접 켤 때만)
+  if (item.type === 'event' && item.remind === undefined && item.start) {
+    const d = loadNotify()
+    const r = item.allDay ? d.defaultAllDay : d.defaultTimed
+    if (r.length) item.remind = [...r]
+  }
   await db.items.add(item)
   return item
 }

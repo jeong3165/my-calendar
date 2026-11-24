@@ -5,6 +5,7 @@ import type { Item } from '../types'
 import { hm, parseYmd, relDay, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
+import { repeatLabel } from '../lib/recur'
 import { Icon, Kbd, type IconName } from './ui'
 
 type Cmd = { id: string; icon: IconName; label: string; hint?: string; run: () => void | Promise<void> }
@@ -21,12 +22,13 @@ export function CommandPalette() {
     const out: Cmd[] = []
     if (query) {
       const p = parseQuick(query)
+      const rep = p.repeat ? ` · ↻ ${repeatLabel(p.repeat, p.date ? ymd(p.date) : undefined)}` : ''
       const when = p.date ? ` · ${relDay(ymd(p.date))}${p.start ? ` ${String(p.start.h).padStart(2, '0')}:${String(p.start.m).padStart(2, '0')}` : ''}` : ''
       if (p.title) {
         out.push({
           id: 'new-event-q',
           icon: 'calendar',
-          label: `새 일정: “${p.title}”${when}`,
+          label: `새 일정: “${p.title}”${when}${rep}`,
           run: async () => {
             const it = await createItem({ type: 'event', ...parsedToItem(p, 'event') })
             if (it.start) ui.setDate(new Date(it.start))
@@ -42,7 +44,7 @@ export function CommandPalette() {
         out.push({
           id: 'new-task-q',
           icon: 'done',
-          label: `새 할 일: “${p.title}”${when}`,
+          label: `새 할 일: “${p.title}”${when}${rep}`,
           run: async () => {
             const it = await createItem({ type: 'task', ...parsedToItem(p, 'task') })
             ui.open(it.id)
@@ -56,6 +58,7 @@ export function CommandPalette() {
       { id: 'new-task', icon: 'plus', label: '새 할 일', hint: 'T', run: () => ui.focusQuickAdd() },
       { id: 'import', icon: 'sparkle', label: '스크린샷·사진·파일에서 일정 가져오기', hint: 'I', run: () => ui.openImport() },
       { id: 'ai-settings', icon: 'settings', label: 'AI 설정 (API 키)', run: () => ui.setSettings(true, 'ai') },
+      { id: 'notify', icon: 'bell', label: '알림 설정', run: () => ui.setSettings(true, 'notify') },
       { id: 'sync', icon: 'upload', label: 'GitHub 동기화 설정 / 지금 동기화', run: () => ui.setSettings(true, 'sync') },
       { id: 'today', icon: 'sun', label: '오늘로 이동', hint: '.', run: () => ui.goToday() },
       { id: 'month', icon: 'type', label: '월 보기', hint: 'M', run: () => ui.setView('month') },

@@ -4,6 +4,7 @@ import { useItems } from '../db'
 import { useUI } from '../store'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
+import { expandItems } from '../lib/recur'
 import { Icon } from './ui'
 
 export function MiniCalendar() {
@@ -14,15 +15,17 @@ export function MiniCalendar() {
 
   const first = startOfWeek(month, WEEK)
   const days = Array.from({ length: 42 }, (_, i) => addDays(first, i))
+  const firstKey = ymd(first)
   const busy = useMemo(() => {
     const s = new Set<string>()
-    for (const it of items) {
+    for (const it of expandItems(items, first, addDays(first, 42))) {
       if (it.type === 'task' && it.done) continue
       const k = it.type === 'task' ? taskKey(it) : it.start ? ymd(new Date(it.start)) : undefined
       if (k) s.add(k)
     }
     return s
-  }, [items])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, firstKey])
 
   const inRange = (d: Date) => {
     if (view === 'day') return isSameDay(d, date)

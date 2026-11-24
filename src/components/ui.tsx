@@ -3,6 +3,7 @@ import type { Item } from '../types'
 import { updateItem } from '../db'
 import { colorVars, isTimed } from '../lib/items'
 import { hm } from '../lib/date'
+import { toggleOccurrenceDone } from '../lib/recur'
 
 /* ───────── 아이콘 (선 아이콘, 1.8px) ───────── */
 const P: Record<string, ReactNode> = {
@@ -96,6 +97,8 @@ const P: Record<string, ReactNode> = {
     </>
   ),
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  repeat: <path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" />,
+  bell: <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" />,
   sparkle: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />,
   image: (
     <>
@@ -178,7 +181,7 @@ export function Checkbox({ checked, onChange, size = 16, label }: { checked: boo
   )
 }
 
-export const toggleDone = (it: Item) => updateItem(it.id, { done: !it.done })
+export const toggleDone = (it: Item) => (it.occ ? toggleOccurrenceDone(it) : updateItem(it.id, { done: !it.done }))
 
 /* ───────── 월간/종일 영역 칩 ───────── */
 export function ItemChip({
@@ -219,6 +222,7 @@ export function ItemChip({
       )}
       {timed && showTime && <span className="tnum shrink-0 text-fg2">{hm(new Date(item.start!))}</span>}
       <span className={`truncate ${item.done ? 'text-fg3 line-through' : ''} ${solid ? 'font-medium' : ''}`}>{item.title || '제목 없음'}</span>
+      {item.occ && <Icon name="repeat" size={11} className="opacity-50" />}
     </div>
   )
 }
