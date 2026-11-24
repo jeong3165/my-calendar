@@ -3,7 +3,8 @@ import { addDays, addMinutes, differenceInCalendarDays, startOfDay } from 'date-
 import { updateItem, useItems } from '../db'
 import { useUI } from '../store'
 import type { Item, Priority } from '../types'
-import { COLORS, COLOR_LABEL, PRIORITY_LABEL } from '../types'
+import { COLORS, COLOR_LABEL, PRIORITY_LABEL, STATUS_LABEL, type Status } from '../types'
+import { statusOf } from '../lib/dbview'
 import { parseYmd, toLocalInput, ymd } from '../lib/date'
 import { allTags, colorVars, isTimed, tagColor } from '../lib/items'
 import { Checkbox, Icon, type IconName } from './ui'
@@ -179,10 +180,11 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
         {isTask && (
           <>
             <Prop icon="status" label="상태">
-              <button onClick={() => set({ done: !item.done })} className="flex items-center gap-1.5 rounded-[4px] px-2 py-1 hover:bg-hover">
-                <span className={`h-2 w-2 rounded-full ${item.done ? 'bg-[var(--c-green-bar)]' : 'bg-[var(--c-gray-bar)]'}`} />
-                <span className="text-[14px]">{item.done ? '완료' : '할 일'}</span>
-              </button>
+              <Seg
+                value={statusOf(item)}
+                options={(occ ? (['todo', 'done'] as Status[]) : (['todo', 'doing', 'done'] as Status[])).map((v) => [v, STATUS_LABEL[v]])}
+                onChange={(v) => (occ ? set({ done: v === 'done' }) : set({ done: v === 'done', doing: v === 'doing' ? true : undefined }))}
+              />
             </Prop>
             <Prop icon="flag" label="우선순위">
               <Seg

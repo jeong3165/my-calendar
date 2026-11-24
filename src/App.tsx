@@ -8,6 +8,8 @@ import { TimeGrid } from './components/TimeGrid'
 import { PeekPanel } from './components/PeekPanel'
 import { CommandPalette } from './components/CommandPalette'
 import { TaskList } from './components/TaskList'
+import { TableView } from './components/TableView'
+import { BoardView } from './components/BoardView'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
@@ -16,7 +18,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -69,10 +71,12 @@ export default function App() {
         KeyM: () => ui.setView('month'),
         KeyW: () => ui.setView('week'),
         KeyD: () => ui.setView('day'),
-        ArrowLeft: () => ui.shift(-1),
-        ArrowRight: () => ui.shift(1),
-        Period: () => ui.goToday(),
+        ArrowLeft: () => ui.mode === 'calendar' && ui.shift(-1),
+        ArrowRight: () => ui.mode === 'calendar' && ui.shift(1),
+        Period: () => (ui.setMode('calendar'), ui.goToday()),
         KeyI: () => ui.openImport(),
+        KeyL: () => ui.setMode('table'),
+        KeyB: () => ui.setMode('board'),
       }
       const fn = map[e.code]
       if (fn) {
@@ -147,8 +151,8 @@ export default function App() {
         <Toolbar />
         <div className="flex min-h-0 flex-1 border-t border-line">
           <div className="flex min-w-0 flex-1 flex-col">
-            {view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
-            {isMobile && (
+            {mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
+            {isMobile && mode === 'calendar' && (
               <section className="max-h-[38vh] shrink-0 overflow-y-auto border-t border-line bg-sidebar pt-2">
                 <div className="px-3.5 pb-1 text-[12px] font-medium text-fg3">오늘 할 일</div>
                 <TaskList section={{ kind: 'today' }} compact />

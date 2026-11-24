@@ -55,7 +55,7 @@ function TaskRow({ t, selected, onOpen }: { t: Item; selected: boolean; onOpen: 
       </span>
       <div className="min-w-0 flex-1">
         <div className={`truncate text-[14px] leading-[20px] ${t.done ? 'text-fg3 line-through' : ''}`}>{t.title || '제목 없음'}</div>
-        {(key || t.priority === 'high' || t.tags.length > 0) && (
+        {(key || t.priority === 'high' || t.tags.length > 0 || t.doing) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-4 text-fg2">
             {key && (
               <span className={`tnum ${overdue ? 'text-danger' : ''}`}>
@@ -63,6 +63,7 @@ function TaskRow({ t, selected, onOpen }: { t: Item; selected: boolean; onOpen: 
                 {t.start && ` ${hm(new Date(t.start))}`}
               </span>
             )}
+            {t.doing && !t.done && <span className="rounded-[3px] px-1 text-[11px]" style={colorVars('blue')}>진행 중</span>}
             {t.priority === 'high' && (
               <span className="flex items-center gap-0.5 text-danger">
                 <Icon name="flag" size={11} />

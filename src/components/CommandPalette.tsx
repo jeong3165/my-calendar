@@ -61,6 +61,8 @@ export function CommandPalette() {
       { id: 'notify', icon: 'bell', label: '알림 설정', run: () => ui.setSettings(true, 'notify') },
       { id: 'sync', icon: 'upload', label: 'GitHub 동기화 설정 / 지금 동기화', run: () => ui.setSettings(true, 'sync') },
       { id: 'today', icon: 'sun', label: '오늘로 이동', hint: '.', run: () => ui.goToday() },
+      { id: 'table', icon: 'table', label: '표 보기', hint: 'L', run: () => ui.setMode('table') },
+      { id: 'board', icon: 'board', label: '보드 보기', hint: 'B', run: () => ui.setMode('board') },
       { id: 'month', icon: 'type', label: '월 보기', hint: 'M', run: () => ui.setView('month') },
       { id: 'week', icon: 'type', label: '주 보기', hint: 'W', run: () => ui.setView('week') },
       { id: 'day', icon: 'type', label: '일 보기', hint: 'D', run: () => ui.setView('day') },

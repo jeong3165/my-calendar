@@ -31,6 +31,7 @@ export type Item = {
   allDay?: boolean
   due?: string
   done?: boolean
+  doing?: boolean // 할 일: 진행 중 (보드의 가운데 칸)
   priority?: Priority
   tags: string[]
   color: NotionColor
@@ -64,6 +65,9 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export type View = 'month' | 'week' | 'day'
+export type Mode = 'calendar' | 'table' | 'board'
+export type Status = 'todo' | 'doing' | 'done'
+export const STATUS_LABEL: Record<Status, string> = { todo: '할 일', doing: '진행 중', done: '완료' }
 
 export type Section =
   | { kind: 'today' }

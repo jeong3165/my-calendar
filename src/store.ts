@@ -1,7 +1,8 @@
 import { addDays, addMonths, addWeeks, isSameDay } from 'date-fns'
 import { create } from 'zustand'
 import { createItem, db, deleteItem } from './db'
-import type { Item, Section, View } from './types'
+import type { Item, Mode, Section, View } from './types'
+import { DEFAULT_FILTERS, type Filters, type Sort } from './lib/filters'
 
 export type Scope = 'this' | 'following' | 'all'
 type SettingsTab = 'ai' | 'sync' | 'notify'
@@ -9,7 +10,36 @@ type SettingsTab = 'ai' | 'sync' | 'notify'
 const mobileQuery = '(max-width: 767px)'
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia(mobileQuery).matches
 
+/* 보기 설정은 이 브라우저에 기억 (편의 기능, 실패해도 무방) */
+const PREFS = 'my-calendar.view-prefs'
+type Prefs = { mode: Mode; filters: Filters; sort: Sort; boardGroup: 'status' | 'priority' }
+function loadPrefs(): Partial<Prefs> {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+function savePrefs(p: Prefs) {
+  try {
+    localStorage.setItem(PREFS, JSON.stringify(p))
+  } catch {
+    /* ignore */
+  }
+}
+const prefs = loadPrefs()
+
 type UI = {
+  mode: Mode
+  filters: Filters
+  sort: Sort
+  boardGroup: 'status' | 'priority'
+  setMode: (m: Mode) => void
+  setFilters: (f: Partial<Filters>) => void
+  resetFilters: () => void
+  setSort: (s: Sort) => void
+  setBoardGroup: (g: 'status' | 'priority') => void
+
   view: View
   date: Date
   selectedId: string | null
@@ -60,6 +90,16 @@ async function discardIfEmptyDraft(draftId: string | null) {
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useUI = create<UI>((set, get) => ({
+  mode: prefs.mode ?? 'calendar',
+  filters: { ...DEFAULT_FILTERS, ...prefs.filters },
+  sort: prefs.sort ?? { key: 'date', dir: 'asc' },
+  boardGroup: prefs.boardGroup ?? 'status',
+  setMode: (mode) => set({ mode }),
+  setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),
+  resetFilters: () => set((s) => ({ filters: { ...DEFAULT_FILTERS, type: s.filters.type } })),
+  setSort: (sort) => set({ sort }),
+  setBoardGroup: (boardGroup) => set({ boardGroup }),
+
   view: isMobileNow() ? 'day' : 'week',
   date: new Date(),
   selectedId: null,
@@ -70,7 +110,7 @@ export const useUI = create<UI>((set, get) => ({
   quickAddTick: 0,
   isMobile: isMobileNow(),
 
-  setView: (view) => set({ view }),
+  setView: (view) => set({ view, mode: 'calendar' }),
   setDate: (date) => set({ date }),
   shift: (dir) => {
     const { view, date } = get()
@@ -140,3 +180,9 @@ export const useUI = create<UI>((set, get) => ({
 }))
 
 export { mobileQuery }
+
+// 보기 설정이 바뀔 때마다 저장
+useUI.subscribe((s, prev) => {
+  if (s.mode !== prev.mode || s.filters !== prev.filters || s.sort !== prev.sort || s.boardGroup !== prev.boardGroup)
+    savePrefs({ mode: s.mode, filters: s.filters, sort: s.sort, boardGroup: s.boardGroup })
+})
