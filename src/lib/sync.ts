@@ -24,7 +24,7 @@ export function saveSync(s: SyncSettings) {
     /* ignore */
   }
 }
-const ready = (s: SyncSettings) => s.enabled && !!s.token && /^[\w.-]+\/[\w.-]+$/.test(s.repo)
+export const ready = (s: SyncSettings) => s.enabled && !!s.token && /^[\w.-]+\/[\w.-]+$/.test(s.repo)
 
 /* ───────── 상태 (사이드바 표시용) ───────── */
 export type SyncState = {
@@ -41,7 +41,7 @@ export const useSync = create<SyncState>(() => ({
 }))
 
 /* ───────── GitHub REST API ───────── */
-class GitHubError extends Error {
+export class GitHubError extends Error {
   status: number
   constructor(status: number, message: string) {
     super(message)
@@ -49,7 +49,7 @@ class GitHubError extends Error {
   }
 }
 
-async function gh(s: Pick<SyncSettings, 'token'>, path: string, init: RequestInit = {}) {
+export async function gh(s: Pick<SyncSettings, 'token'>, path: string, init: RequestInit = {}) {
   let res: Response
   try {
     res = await fetch(`https://api.github.com${path}`, {
@@ -81,15 +81,15 @@ async function gh(s: Pick<SyncSettings, 'token'>, path: string, init: RequestIni
   throw new GitHubError(res.status, `${msg || 'GitHub 오류'} (${res.status})`)
 }
 
-const enc = (path: string) => path.split('/').map(encodeURIComponent).join('/')
+export const enc = (path: string) => path.split('/').map(encodeURIComponent).join('/')
 
-function b64encode(str: string) {
+export function b64encode(str: string) {
   const bytes = new TextEncoder().encode(str)
   let bin = ''
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
   return btoa(bin)
 }
-function b64decode(b64: string) {
+export function b64decode(b64: string) {
   const bin = atob(b64.replace(/\s/g, ''))
   return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))
 }

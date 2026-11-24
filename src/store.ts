@@ -5,7 +5,7 @@ import type { Item, Mode, Section, View } from './types'
 import { DEFAULT_FILTERS, type Filters, type Sort } from './lib/filters'
 
 export type Scope = 'this' | 'following' | 'all'
-type SettingsTab = 'ai' | 'sync' | 'notify'
+type SettingsTab = 'ai' | 'sync' | 'notify' | 'subs'
 
 const mobileQuery = '(max-width: 767px)'
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia(mobileQuery).matches

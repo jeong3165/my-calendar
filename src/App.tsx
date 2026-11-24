@@ -15,6 +15,7 @@ import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
 import { SyncAgent } from './components/SyncAgent'
+import { SubsAgent } from './components/SubsAgent'
 import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
@@ -147,6 +148,7 @@ export default function App() {
   return (
     <div className="flex h-full">
       <SyncAgent />
+      <SubsAgent />
       <NotificationAgent />
       <Sidebar />
       <main className="flex min-w-0 flex-1 flex-col">

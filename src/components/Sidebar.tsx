@@ -8,6 +8,7 @@ import { TaskList, sectionTitle } from './TaskList'
 import { Icon, Kbd, MOD, type IconName } from './ui'
 import { SyncLabel } from './SettingsDialog'
 import { syncNow, useSync } from '../lib/sync'
+import { setSubscriptions, useSubs } from '../lib/subs'
 
 const NAV: { s: Section; icon: IconName }[] = [
   { s: { kind: 'today' }, icon: 'today' },
@@ -93,6 +94,8 @@ export function Sidebar() {
           </div>
         )}
 
+        <SubsSection onSetup={() => setSettings(true, 'subs')} />
+
         <div className="mt-3 border-t border-line pt-3">
           <div className="px-3.5 pb-1.5 text-[12px] font-medium text-fg3">{sectionTitle(section)} 할 일</div>
           <TaskList section={section} />
@@ -171,6 +174,52 @@ function SyncButton({ onSetup }: { onSetup: () => void }) {
         {error}
       </button>
     )}
+    </div>
+  )
+}
+
+/** 사이드바: 구독 캘린더 목록 (눌러서 보이기/숨기기) */
+function SubsSection({ onSetup }: { onSetup: () => void }) {
+  const { list, status } = useSubs()
+  return (
+    <div className="px-1.5 pt-3">
+      <div className="flex items-center px-2 pb-1">
+        <span className="flex-1 text-[12px] font-medium text-fg3">구독 캘린더</span>
+        <button onClick={onSetup} className="grid h-5 w-5 place-items-center rounded text-fg3 hover:bg-hover hover:text-fg2" title="구독 추가·관리" aria-label="구독 추가·관리">
+          <Icon name="plus" size={13} />
+        </button>
+      </div>
+      {list.length === 0 ? (
+        <button onClick={onSetup} className="w-full rounded-[6px] px-2 py-1 text-left text-[12px] text-fg3 hover:bg-hover">
+          회사·구글 캘린더 함께 보기 →
+        </button>
+      ) : (
+        list.map((s) => {
+          const st = status[s.id]
+          return (
+            <button
+              key={s.id}
+              onClick={() => setSubscriptions(list.map((x) => (x.id === s.id ? { ...x, enabled: !x.enabled } : x)))}
+              className="flex w-full items-center gap-2 rounded-[6px] px-2 py-[5px] text-left text-[13px] hover:bg-hover"
+              title={st?.state === 'error' ? st.error : s.enabled ? '눌러서 숨기기' : '눌러서 보이기'}
+            >
+              <span
+                className="grid h-3.5 w-3.5 shrink-0 place-items-center rounded-[3px] border-[1.5px]"
+                style={{ borderColor: `var(--c-${s.color}-bar)`, background: s.enabled ? `var(--c-${s.color}-bar)` : 'transparent' }}
+              >
+                {s.enabled && (
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round">
+                    <path d="m2.5 6.2 2.3 2.3 4.7-5" />
+                  </svg>
+                )}
+              </span>
+              <span className={`min-w-0 flex-1 truncate ${s.enabled ? '' : 'text-fg3'}`}>{s.name}</span>
+              {st?.state === 'error' && <Icon name="alert" size={12} className="shrink-0 text-danger" />}
+              {st?.state === 'loading' && <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" />}
+            </button>
+          )
+        })
+      )}
     </div>
   )
 }

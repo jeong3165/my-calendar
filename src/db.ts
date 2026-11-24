@@ -11,7 +11,11 @@ export const db = new Dexie('my-notion-calendar') as Dexie & {
   items: EntityTable<Item, 'id'>
   tombstones: EntityTable<Tombstone, 'id'>
   journal: EntityTable<Journal, 'date'>
+  subcache: EntityTable<SubCache, 'id'>
 }
+
+/** 구독 캘린더를 마지막으로 받아 온 결과 (오프라인에서도 보이도록) */
+export type SubCache = { id: string; fetchedAt: string; method: 'direct' | 'github'; items: Item[] }
 
 db.version(1).stores({
   items: 'id, type, start, due, updatedAt',
@@ -24,6 +28,12 @@ db.version(3).stores({
   items: 'id, type, start, due, updatedAt',
   tombstones: 'id, deletedAt',
   journal: 'date, updatedAt',
+})
+db.version(4).stores({
+  items: 'id, type, start, due, updatedAt',
+  tombstones: 'id, deletedAt',
+  journal: 'date, updatedAt',
+  subcache: 'id',
 })
 
 const uid = () =>

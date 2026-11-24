@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type DragEvent } from 'react'
 import { addDays, differenceInCalendarDays, format, isToday, startOfDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { createItem, useItems } from '../db'
+import { createItem } from '../db'
+import { useCalendarItems } from '../lib/subs'
 import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
 import type { Item } from '../types'
@@ -30,7 +31,7 @@ function useNow() {
 }
 
 export function TimeGrid({ days }: { days: Date[] }) {
-  const all = useItems()
+  const all = useCalendarItems()
   const { open, selectedId, setDate, setView } = useUI()
   const items = useMemo(() => expandItems(all, days[0], addDays(days[days.length - 1], 1)), [all, days])
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -72,6 +73,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
   function onBlockDown(e: RPE, item: Item, mode: 'move' | 'resize') {
     if (e.button !== 0) return
     e.stopPropagation()
+    if (item.readonly) return open(item.id) // 구독 일정은 옮길 수 없음
     colsRef.current!.setPointerCapture(e.pointerId)
     const p = pos(e.clientX, e.clientY)
     if (mode === 'move') setDrag({ kind: 'move', item, day0: p.day, min0: p.min, dDay: 0, dMin: 0, x0: e.clientX, y0: e.clientY, moved: false })
@@ -268,7 +270,8 @@ export function TimeGrid({ days }: { days: Date[] }) {
                           width: `calc(${100 / c}% - 4px)`,
                           background: `var(--c-${it.color}-bg)`,
                           color: `var(--c-${it.color}-text)`,
-                          boxShadow: `inset 3px 0 0 var(--c-${it.color}-bar)`,
+                          boxShadow: it.readonly ? `inset 3px 0 0 var(--c-${it.color}-bar), inset 0 0 0 1px var(--c-${it.color}-bar)` : `inset 3px 0 0 var(--c-${it.color}-bar)`,
+                          opacity: it.readonly ? 0.92 : undefined,
                           paddingLeft: 8,
                         }}
                       >
@@ -289,7 +292,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                             {hm(new Date(it.start!))} – {hm(new Date(it.end!))}
                           </div>
                         )}
-                        <div className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" onPointerDown={(e) => onBlockDown(e, it, 'resize')} />
+                        {!it.readonly && <div className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" onPointerDown={(e) => onBlockDown(e, it, 'resize')} />}
                       </div>
                     )
                   })}

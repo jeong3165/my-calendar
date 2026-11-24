@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { addDays, format, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { createItem, saveJournal, useItems, useJournal, useJournals } from '../db'
+import { createItem, saveJournal, useJournal, useJournals } from '../db'
+import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
 import type { Item, Journal } from '../types'
 import { WEEK, parseYmd, relDay, ymd } from '../lib/date'
@@ -22,7 +23,7 @@ export function DayView() {
 const WORK_MIN = 9 * 60 // 하루 업무 시간 기준 (9시간)
 
 function PlanView() {
-  const items = useItems()
+  const items = useCalendarItems()
   const { isMobile, showToast } = useUI()
   const today = ymd(new Date())
   const tomorrow = ymd(addDays(new Date(), 1))
@@ -203,7 +204,7 @@ function QuickTask({ due, placeholder = '할 일 추가', priority }: { due: str
 
 /* ═════════ 하루 정리 ═════════ */
 function ReviewView() {
-  const items = useItems()
+  const items = useCalendarItems()
   const dayDate = useUI((s) => s.dayDate)
   const date = ymd(dayDate)
   const journal = useJournal(date)
@@ -328,7 +329,7 @@ function Reflection({ date, journal, tomorrow }: { date: string; journal?: Journ
 
 /* ═════════ 주간 리뷰 ═════════ */
 function WeekView() {
-  const items = useItems()
+  const items = useCalendarItems()
   const { dayDate, setDayDate, setDaySub } = useUI()
   const monday = startOfWeek(dayDate, WEEK)
   const days = Array.from({ length: 7 }, (_, i) => ymd(addDays(monday, i)))

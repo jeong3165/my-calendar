@@ -3,6 +3,7 @@ import { useUI } from '../store'
 import { MODELS, loadSettings, saveSettings } from '../lib/importFiles'
 import { loadSync, saveSync, syncNow, testConnection, useSync } from '../lib/sync'
 import { Icon } from './ui'
+import { SubsTab } from './SubsTab'
 import { REMIND_ALLDAY, REMIND_TIMED, loadNotify, permission, saveNotify, showSystemNotification } from '../lib/notify'
 
 export function SettingsDialog() {
@@ -11,12 +12,13 @@ export function SettingsDialog() {
 
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/30 px-4 pt-[8vh]" onMouseDown={() => setSettings(false)}>
-      <div role="dialog" aria-label="설정" onMouseDown={(e) => e.stopPropagation()} className="shadow-pop flex max-h-[84vh] w-full max-w-[520px] flex-col rounded-[12px] bg-popover">
+      <div role="dialog" aria-label="설정" onMouseDown={(e) => e.stopPropagation()} className="shadow-pop flex max-h-[84vh] w-full max-w-[560px] flex-col rounded-[12px] bg-popover">
         <div className="flex items-center gap-2 border-b border-line px-5 pt-3">
           <div className="flex flex-1 gap-1" role="tablist">
             {(
               [
                 ['sync', 'GitHub 동기화'],
+                ['subs', '구독 캘린더'],
                 ['notify', '알림'],
                 ['ai', 'AI (캡처로 추가)'],
               ] as const
@@ -36,7 +38,7 @@ export function SettingsDialog() {
             <Icon name="x" size={16} />
           </button>
         </div>
-        <div className="min-h-0 overflow-y-auto">{tab === 'ai' ? <AITab /> : tab === 'notify' ? <NotifyTab /> : <SyncTab />}</div>
+        <div className="min-h-0 overflow-y-auto">{tab === 'ai' ? <AITab /> : tab === 'notify' ? <NotifyTab /> : tab === 'subs' ? <SubsTab /> : <SyncTab />}</div>
       </div>
     </div>
   )

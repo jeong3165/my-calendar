@@ -58,6 +58,7 @@ export function CommandPalette() {
       { id: 'new-task', icon: 'plus', label: '새 할 일', hint: 'T', run: () => ui.focusQuickAdd() },
       { id: 'import', icon: 'sparkle', label: '스크린샷·사진·파일에서 일정 가져오기', hint: 'I', run: () => ui.openImport() },
       { id: 'ai-settings', icon: 'settings', label: 'AI 설정 (API 키)', run: () => ui.setSettings(true, 'ai') },
+      { id: 'subs', icon: 'calendar', label: '구독 캘린더 (다른 캘린더 함께 보기)', run: () => ui.setSettings(true, 'subs') },
       { id: 'notify', icon: 'bell', label: '알림 설정', run: () => ui.setSettings(true, 'notify') },
       { id: 'sync', icon: 'upload', label: 'GitHub 동기화 설정 / 지금 동기화', run: () => ui.setSettings(true, 'sync') },
       { id: 'today', icon: 'sun', label: '오늘로 이동', hint: '.', run: () => ui.goToday() },

@@ -214,7 +214,7 @@ export function ItemChip({
   const solid = item.type === 'event' && !timed
   return (
     <div
-      draggable
+      draggable={!item.readonly}
       onDragStart={(e) => {
         e.dataTransfer.setData('application/x-item', item.id)
         e.dataTransfer.effectAllowed = 'move'

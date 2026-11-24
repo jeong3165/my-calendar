@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { addDays, addMinutes, differenceInCalendarDays, startOfDay } from 'date-fns'
-import { updateItem, useItems } from '../db'
+import { createItem, updateItem } from '../db'
+import { fmtWhen } from './viewUtil'
+import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
 import type { Item, Priority } from '../types'
 import { COLORS, COLOR_LABEL, PRIORITY_LABEL, STATUS_LABEL, type Status } from '../types'
@@ -15,7 +17,7 @@ import { ko } from 'date-fns/locale'
 
 export function PeekPanel() {
   const { selectedId, close, isMobile } = useUI()
-  const items = useItems()
+  const items = useCalendarItems()
   const item = selectedId ? resolveItem(items, selectedId) : undefined
   if (!item) return null
   return (
@@ -36,7 +38,7 @@ export function PeekPanel() {
           )}
         </span>
         <div className="flex-1" />
-        <button
+        {!item.readonly && <button
           onClick={async () => {
             if (!item.occ && !confirm(`'${item.title || '제목 없음'}'을(를) 삭제할까요?${isRecurring(item) ? '\n반복 일정 전체가 삭제돼요.' : ''}`)) return
             if (await deleteSmart(item)) close()
@@ -44,9 +46,9 @@ export function PeekPanel() {
           className="flex h-7 items-center gap-1 rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover hover:text-danger"
         >
           <Icon name="trash" size={15} /> 삭제
-        </button>
+        </button>}
       </div>
-      <PeekBody key={item.id} item={item} allItems={items} />
+      {item.readonly ? <ReadonlyBody key={item.id} item={item} /> : <PeekBody key={item.id} item={item} allItems={items} />}
     </aside>
   )
 }
@@ -566,4 +568,61 @@ function autoGrow(el: HTMLTextAreaElement | null, min = 0) {
   if (!el) return
   el.style.height = 'auto'
   el.style.height = `${Math.max(el.scrollHeight, min)}px`
+}
+
+/* ───────── 구독 캘린더 일정 (읽기 전용) ───────── */
+function ReadonlyBody({ item }: { item: Item }) {
+  const { open, showToast } = useUI()
+  const note = item.note ?? ''
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24 md:px-10">
+      <h2 className="text-[28px] leading-[1.25] font-bold tracking-[-0.01em] break-words md:text-[30px]">{item.title}</h2>
+      <div className="mt-4 flex flex-col gap-px">
+        <Prop icon="calendar" label="캘린더">
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 text-[14px]">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: `var(--c-${item.color}-bar)` }} />
+            {item.readonly!.name}
+            <span className="text-[12px] text-fg3">· 구독 (읽기 전용)</span>
+          </span>
+        </Prop>
+        <Prop icon="clock" label="날짜">
+          <span className="block px-2 py-1 text-[14px]">{fmtWhen(item) || '—'}</span>
+        </Prop>
+        {item.repeat && (
+          <Prop icon="repeat" label="반복">
+            <span className="block px-2 py-1 text-[14px]">{repeatLabel(item.repeat, baseDate({ ...item, occ: undefined }))}</span>
+          </Prop>
+        )}
+      </div>
+      {note && (
+        <>
+          <div className="my-5 border-t border-line" />
+          <p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words text-fg">
+            {note.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+              /^https?:\/\//.test(part) ? (
+                <a key={i} href={part} target="_blank" rel="noreferrer" className="text-accent underline underline-offset-2">
+                  {part}
+                </a>
+              ) : (
+                part
+              ),
+            )}
+          </p>
+        </>
+      )}
+      <div className="mt-6 flex flex-wrap items-center gap-2 rounded-[8px] bg-hover px-3 py-2.5 text-[13px] text-fg2">
+        <span className="flex-1">구독한 캘린더의 일정은 여기서 바꿀 수 없어요. 원래 캘린더에서 바꾸면 다음 갱신 때 반영돼요.</span>
+        <button
+          onClick={async () => {
+            const it = await createItem({ type: 'event', title: item.title, start: item.start, end: item.end, allDay: item.allDay, note: item.note, color: item.color })
+            showToast('이 회차를 내 일정으로 복사했어요.')
+            open(it.id)
+          }}
+          className="rounded-[6px] bg-bg px-2.5 py-1 font-medium text-fg shadow-[0_0_0_1px_var(--border-strong)] hover:bg-active"
+        >
+          내 일정으로 복사
+        </button>
+      </div>
+    </div>
+  )
 }

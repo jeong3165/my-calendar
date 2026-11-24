@@ -41,6 +41,8 @@ export type Item = {
   exdates?: string[] // 반복에서 빠진 날짜 (YYYY-MM-DD)
   doneDates?: string[] // 반복 할 일: 완료한 회차 날짜
   remind?: number[] // 알림: 시작 몇 분 전 (종일은 0시 기준, 음수 = 그날 이후)
+  /** 구독 캘린더에서 온 읽기 전용 일정 (저장·동기화하지 않음) */
+  readonly?: { subId: string; name: string }
   /** 화면용 반복 회차 정보 (저장하지 않음) */
   occ?: { seriesId: string; date: string }
   createdAt: string
@@ -88,4 +90,13 @@ export type Journal = {
   good?: string // 잘한 점
   better?: string // 아쉬운 점
   updatedAt: string
+}
+
+/** 구독 캘린더 (iCal 주소) */
+export type Subscription = {
+  id: string
+  name: string
+  url: string
+  color: NotionColor
+  enabled: boolean
 }

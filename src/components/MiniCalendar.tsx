@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { addDays, addMonths, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
-import { useItems } from '../db'
+import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
@@ -9,7 +9,7 @@ import { Icon } from './ui'
 
 export function MiniCalendar() {
   const { date, setDate, view } = useUI()
-  const items = useItems()
+  const items = useCalendarItems()
   const [month, setMonth] = useState(() => startOfMonth(date))
   useEffect(() => setMonth(startOfMonth(date)), [date])
 

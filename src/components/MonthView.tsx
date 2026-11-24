@@ -1,7 +1,8 @@
 import { useState, type DragEvent } from 'react'
 import { addDays, differenceInCalendarDays, format, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
 import { useMemo } from 'react'
-import { createItem, useItems } from '../db'
+import { createItem } from '../db'
+import { useCalendarItems } from '../lib/subs'
 import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
@@ -11,7 +12,7 @@ import { ItemChip } from './ui'
 const MAX = 3
 
 export function MonthView() {
-  const all = useItems()
+  const all = useCalendarItems()
   const { date, open, selectedId, setDate, setView } = useUI()
   const [over, setOver] = useState<string | null>(null)
   const first = startOfWeek(startOfMonth(date), WEEK)

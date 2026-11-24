@@ -283,6 +283,7 @@ export async function toggleOccurrenceDone(inst: Item) {
 
 /** 회차면 범위를 물어보고, 아니면 바로 저장. 새로 생긴 항목 id 를 돌려준다. */
 export async function updateSmart(it: Item, patch: Partial<Item>): Promise<string | undefined> {
+  if (it.readonly) return // 구독 캘린더 일정은 읽기 전용
   if (!it.occ) {
     await updateItem(it.id, patch)
     return
@@ -297,6 +298,7 @@ export async function updateSmart(it: Item, patch: Partial<Item>): Promise<strin
 }
 
 export async function deleteSmart(it: Item): Promise<boolean> {
+  if (it.readonly) return false
   if (!it.occ) {
     await deleteItem(it.id)
     return true
