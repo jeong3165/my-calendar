@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-sidebar: var(--bg-sidebar);
+  --color-popover: var(--popover);
+  --color-fg: var(--text);
+  --color-fg2: var(--text-secondary);
+  --color-fg3: var(--text-tertiary);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --font-sans: "Pretendard Variable", Pretendard, Inter, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+}
+
+/* ───────── 디자인 토큰 (라이트) ───────── */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-sidebar: #f7f7f5;
+  --popover: #ffffff;
+  --text: #37352f;
+  --text-secondary: #787774;
+  --text-tertiary: #9b9a97;
+  --border: rgba(55, 53, 47, 0.09);
+  --border-strong: rgba(55, 53, 47, 0.16);
+  --hover: rgba(55, 53, 47, 0.06);
+  --active: rgba(55, 53, 47, 0.1);
+  --accent: #2383e2;
+  --accent-soft: rgba(35, 131, 226, 0.12);
+  --danger: #e03e3e;
+  --shadow-pop: 0 0 0 1px rgba(15, 15, 15, 0.05), 0 3px 6px rgba(15, 15, 15, 0.1), 0 9px 24px rgba(15, 15, 15, 0.2);
+
+  /* 태그 색 9종: 옅은 배경 / 진한 글자 / 블록 왼쪽 바 */
+  --c-gray-bg: #e3e2e0;   --c-gray-text: #32302c;   --c-gray-bar: #9b9a97;
+  --c-brown-bg: #eee0da;  --c-brown-text: #442a1e;  --c-brown-bar: #8c6a58;
+  --c-orange-bg: #fadec9; --c-orange-text: #49290e; --c-orange-bar: #d9730d;
+  --c-yellow-bg: #fdecc8; --c-yellow-text: #402c1b; --c-yellow-bar: #dfab01;
+  --c-green-bg: #dbeddb;  --c-green-text: #1c3829;  --c-green-bar: #0f7b6c;
+  --c-blue-bg: #d3e5ef;   --c-blue-text: #183347;   --c-blue-bar: #2383e2;
+  --c-purple-bg: #e8deee; --c-purple-text: #412454; --c-purple-bar: #9065b0;
+  --c-pink-bg: #f5e0e9;   --c-pink-text: #4c2337;   --c-pink-bar: #c14c8a;
+  --c-red-bg: #ffe2dd;    --c-red-text: #5d1715;    --c-red-bar: #e03e3e;
+}
+
+/* ───────── 다크 ───────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #191919;
+    --bg-sidebar: #202020;
+    --popover: #252525;
+    --text: #d4d4d4;
+    --text-secondary: #9b9b9b;
+    --text-tertiary: #6f6f6f;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --hover: rgba(255, 255, 255, 0.055);
+    --active: rgba(255, 255, 255, 0.09);
+    --accent: #3f95ea;
+    --accent-soft: rgba(63, 149, 234, 0.18);
+    --danger: #f06b6b;
+    --shadow-pop: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 3px 6px rgba(0, 0, 0, 0.3), 0 9px 24px rgba(0, 0, 0, 0.45);
+
+    --c-gray-bg: #373737;   --c-gray-text: #d4d4d4;
+    --c-brown-bg: #4a3a33;  --c-brown-text: #dfc0b0;
+    --c-orange-bg: #5c3b23; --c-orange-text: #f2b77e;
+    --c-yellow-bg: #564328; --c-yellow-text: #f0d27c;
+    --c-green-bg: #243d30;  --c-green-text: #92d1af;
+    --c-blue-bg: #143a4e;   --c-blue-text: #93c6e8;
+    --c-purple-bg: #3c2d49; --c-purple-text: #cbacea;
+    --c-pink-bg: #4e2c3c;   --c-pink-text: #eba9ca;
+    --c-red-bg: #522e2a;    --c-red-text: #f4a69c;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.shadow-pop {
+  box-shadow: var(--shadow-pop);
+}
+
+/* 얇은 노션식 스크롤바 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+@layer base {
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+input[type="date"],
+input[type="datetime-local"] {
+  font-variant-numeric: tabular-nums;
+}
+
+::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
