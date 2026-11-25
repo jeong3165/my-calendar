@@ -89,6 +89,9 @@ export function friendlyError(e: unknown): string {
   if (e instanceof Anthropic.AuthenticationError) return 'API 키가 올바르지 않아요. 설정에서 키를 확인해 주세요.'
   if (e instanceof Anthropic.PermissionDeniedError) return '이 API 키로는 선택한 모델을 쓸 수 없어요. 설정에서 다른 모델을 골라 보세요.'
   if (e instanceof Anthropic.RateLimitError) return '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'
+  // 선불 크레딧이 바닥났을 때 (전용 오류 종류가 없어 안내 문구로 구분)
+  if (e instanceof Anthropic.APIError && /credit balance is too low/i.test(e.message))
+    return 'Claude 크레딧(선불 잔액)이 부족해요. platform.claude.com → Billing(결제)에서 크레딧을 충전하면 바로 다시 쓸 수 있어요.'
   if (e instanceof Anthropic.BadRequestError) return `요청을 처리할 수 없어요: ${e.message}`
   if (e instanceof Anthropic.APIUserAbortError) return '취소했어요.'
   if (e instanceof Anthropic.APIConnectionError) return '서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.'

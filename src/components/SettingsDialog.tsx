@@ -269,7 +269,12 @@ function AITab() {
         <button onClick={test} disabled={!key || check.state === 'busy'} className="rounded-[6px] border border-line-strong px-3 py-1.5 text-[13px] hover:bg-hover disabled:opacity-40">
           {check.state === 'busy' ? '확인 중…' : '키 확인 (요금 없음)'}
         </button>
-        {check.state === 'ok' && <span className="text-[13px] text-[var(--c-green-bar)]">✓ {check.text}</span>}
+        {check.state === 'ok' && (
+          <span className="flex flex-col text-[13px] text-[var(--c-green-bar)]">
+            ✓ {check.text}
+            <span className="text-[11.5px] text-fg3">크레딧 잔액은 여기서 확인되지 않아요. platform.claude.com → Billing에서 볼 수 있어요.</span>
+          </span>
+        )}
         {check.state === 'bad' && (
           <span className="flex flex-col text-[13px] text-danger">
             {check.text}
