@@ -1,5 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from 'react'
-import { createItem, exportJSON, updateItem, useItems } from '../db'
+import { createItem, deleteDemoData, exportJSON, updateItem, useItems } from '../db'
 import { useUI } from '../store'
 import { startFocus } from '../lib/timer'
 import type { Item } from '../types'
@@ -67,6 +67,13 @@ export function CommandPalette() {
       { id: 'display', icon: 'settings', label: '화면 크기 조절 (글자·시간 칸·패널 너비)', run: () => ui.setSettings(true, 'display') },
       { id: 'templates', icon: 'checklist', label: '템플릿에서 추가 / 템플릿 관리', run: () => useUI.setState({ templates: { view: 'list' } }) },
       { id: 'habits', icon: 'flame', label: '습관 기록 보기', hint: 'H', run: () => ui.setMode('habits') },
+      ...(items.some((x) => x.id.startsWith('demo-'))
+        ? [{ id: 'demo', icon: 'trash' as const, label: '체험용 더미 데이터 모두 지우기', run: async () => {
+            if (!confirm('#테스트 더미 데이터를 모두 지울까요? (직접 만든 일정은 그대로예요)')) return
+            const n = await deleteDemoData()
+            ui.showToast(`더미 데이터 ${n}개를 지웠어요.`)
+          } }]
+        : []),
       { id: 'voice', icon: 'mic', label: '말로 추가 (음성 입력)', run: () => useUI.setState({ quickAddOpen: true, quickAddVoice: true }) },
       { id: 'report', icon: 'chart', label: '월간 리포트 보기', run: () => (ui.setMode('day'), ui.setDaySub('month')) },
       { id: 'dday', icon: 'calendar', label: '기념일·D-day 추가', run: () => useUI.setState({ ddayEdit: 'new' }) },

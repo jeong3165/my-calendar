@@ -153,7 +153,7 @@ export async function importJSON(file: File): Promise<number> {
   if (!Array.isArray(raw)) throw new Error('올바른 백업 파일이 아닙니다.')
   const items = raw.filter(
     (x): x is Item =>
-      !!x && typeof x === 'object' && typeof (x as Item).id === 'string' && ((x as Item).type === 'event' || (x as Item).type === 'task'),
+      !!x && typeof x === 'object' && typeof (x as Item).id === 'string' && ['event', 'task', 'project', 'template', 'dday'].includes((x as Item).type),
   )
   const now = new Date().toISOString()
   await db.items.bulkPut(
@@ -198,4 +198,13 @@ export function useItemSessions(itemId: string): FocusSession[] {
       [itemId],
     ) ?? EMPTY_S
   )
+}
+
+/** 체험용 더미 데이터(id 가 'demo-' 로 시작) 한꺼번에 지우기 — 동기화로 다른 기기에서도 지워짐 */
+export async function deleteDemoData(): Promise<number> {
+  const items = (await db.items.toArray()).filter((x) => x.id.startsWith('demo-'))
+  const sessions = (await db.sessions.toArray()).filter((x) => x.id.startsWith('demo-'))
+  for (const it of items) await deleteItem(it.id)
+  for (const s of sessions) await deleteSession(s.id)
+  return items.length
 }
