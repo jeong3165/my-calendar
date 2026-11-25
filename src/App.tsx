@@ -16,6 +16,10 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
 import { SyncAgent } from './components/SyncAgent'
 import { SubsAgent } from './components/SubsAgent'
+import { TimerWidget } from './components/TimerWidget'
+import { startFocus, toggle as toggleTimer, useTimer } from './lib/timer'
+import { resolveItem } from './lib/recur'
+import { db } from './db'
 import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
@@ -80,6 +84,12 @@ export default function App() {
         KeyL: () => ui.setMode('table'),
         KeyB: () => ui.setMode('board'),
         KeyP: () => ui.setMode('day'),
+        KeyF: () => {
+          if (useTimer.getState().phase !== 'idle') return toggleTimer()
+          const sel = ui.selectedId
+          if (!sel) return void startFocus()
+          void db.items.toArray().then((all) => startFocus(resolveItem(all, sel)))
+        },
       }
       const fn = map[e.code]
       if (fn) {
@@ -170,6 +180,7 @@ export default function App() {
       {importOpen && <ImportDialog />}
       {settingsOpen && <SettingsDialog />}
       {scopePrompt && <ScopeDialog />}
+      <TimerWidget />
       {fileOver && !importOpen && (
         <div className="pointer-events-none fixed inset-3 z-[90] grid place-items-center rounded-[16px] border-2 border-dashed border-accent bg-accent-soft backdrop-blur-[1px]">
           <div className="flex flex-col items-center gap-2 rounded-[12px] bg-popover px-6 py-4 shadow-pop">

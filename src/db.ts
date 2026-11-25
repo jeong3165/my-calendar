@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { Item, Journal } from './types'
+import type { FocusSession, Item, Journal } from './types'
 import { ymd } from './lib/date'
 import { loadNotify } from './lib/notify'
 
@@ -12,6 +12,7 @@ export const db = new Dexie('my-notion-calendar') as Dexie & {
   tombstones: EntityTable<Tombstone, 'id'>
   journal: EntityTable<Journal, 'date'>
   subcache: EntityTable<SubCache, 'id'>
+  sessions: EntityTable<FocusSession, 'id'>
 }
 
 /** 구독 캘린더를 마지막으로 받아 온 결과 (오프라인에서도 보이도록) */
@@ -34,6 +35,13 @@ db.version(4).stores({
   tombstones: 'id, deletedAt',
   journal: 'date, updatedAt',
   subcache: 'id',
+})
+db.version(5).stores({
+  items: 'id, type, start, due, updatedAt',
+  tombstones: 'id, deletedAt',
+  journal: 'date, updatedAt',
+  subcache: 'id',
+  sessions: 'id, date, itemId',
 })
 
 const uid = () =>
@@ -103,8 +111,8 @@ const EMPTY: Item[] = []
 
 /* ───────── 백업: 내보내기 / 가져오기 ───────── */
 export async function exportJSON() {
-  const [items, journal] = await Promise.all([db.items.toArray(), db.journal.toArray()])
-  const blob = new Blob([JSON.stringify({ app: 'my-notion-calendar', version: 1, exportedAt: new Date().toISOString(), items, journal }, null, 2)], {
+  const [items, journal, sessions] = await Promise.all([db.items.toArray(), db.journal.toArray(), db.sessions.toArray()])
+  const blob = new Blob([JSON.stringify({ app: 'my-notion-calendar', version: 1, exportedAt: new Date().toISOString(), items, journal, sessions }, null, 2)], {
     type: 'application/json',
   })
   const url = URL.createObjectURL(blob)
@@ -136,5 +144,34 @@ export async function importJSON(file: File): Promise<number> {
   )
   const journal: Journal[] = Array.isArray(data?.journal) ? data.journal.filter((j: Journal) => j && typeof j.date === 'string') : []
   if (journal.length) await db.journal.bulkPut(journal.map((j) => ({ ...j, updatedAt: j.updatedAt ?? now })))
+  const sessions: FocusSession[] = Array.isArray(data?.sessions) ? data.sessions.filter((x: FocusSession) => x && typeof x.id === 'string' && typeof x.start === 'string') : []
+  if (sessions.length) await db.sessions.bulkPut(sessions)
   return items.length
+}
+
+/* ───────── 집중 기록 ───────── */
+export async function addSession(s: Omit<FocusSession, 'id' | 'updatedAt'>) {
+  const row: FocusSession = { ...s, id: uid(), updatedAt: new Date().toISOString() }
+  await db.sessions.add(row)
+  return row
+}
+export function deleteSession(id: string) {
+  return db.transaction('rw', db.sessions, db.tombstones, async () => {
+    await db.sessions.delete(id)
+    await db.tombstones.put({ id, deletedAt: new Date().toISOString() })
+  })
+}
+const EMPTY_S: FocusSession[] = []
+export function useSessions(from: string, to: string): FocusSession[] {
+  return useLiveQuery(() => db.sessions.where('date').between(from, to, true, true).toArray(), [from, to]) ?? EMPTY_S
+}
+/** 항목(반복이면 모든 회차)의 집중 기록 */
+export function useItemSessions(itemId: string): FocusSession[] {
+  const base = itemId.split('::')[0]
+  return (
+    useLiveQuery(
+      () => db.sessions.filter((x) => !!x.itemId && (x.itemId === itemId || x.itemId === base || x.itemId.startsWith(base + '::'))).toArray(),
+      [itemId],
+    ) ?? EMPTY_S
+  )
 }

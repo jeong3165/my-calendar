@@ -1,5 +1,5 @@
 import { addDays, differenceInCalendarDays } from 'date-fns'
-import type { Item, Journal } from '../types'
+import type { FocusSession, Item, Journal } from '../types'
 import { parseYmd, ymd } from './date'
 import { isAllDayOn, isTimed, taskKey, timedSegment } from './items'
 import { expandItems, instance, isRecurring, resolveItem, updateSmart } from './recur'
@@ -31,9 +31,12 @@ export type DayData = {
   plannedMinutes: number
   doneMinutes: number
   eventMinutes: number
+  focusMinutes: number // 타이머로 실제 집중한 시간
+  focusCount: number
+  focusByItem: Map<string, number> // 항목별 집중 시간 (분)
 }
 
-export function dayData(items: Item[], date: string, journal?: Journal): DayData {
+export function dayData(items: Item[], date: string, journal?: Journal, sessions: FocusSession[] = []): DayData {
   const d = parseYmd(date)
   const expanded = expandItems(items, d, addDays(d, 1))
   const events = expanded
@@ -51,7 +54,13 @@ export function dayData(items: Item[], date: string, journal?: Journal): DayData
     const seg = timedSegment(e, d)
     return sum + (seg ? seg.endMin - seg.startMin : 0)
   }, 0)
+  const today = sessions.filter((x) => x.date === date)
+  const focusByItem = new Map<string, number>()
+  for (const x of today) if (x.itemId) focusByItem.set(x.itemId, (focusByItem.get(x.itemId) ?? 0) + x.minutes)
   return {
+    focusMinutes: today.reduce((s, x) => s + x.minutes, 0),
+    focusCount: today.length,
+    focusByItem,
     date,
     events,
     tasks,

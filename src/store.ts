@@ -40,6 +40,7 @@ type UI = {
   setSort: (s: Sort) => void
   setBoardGroup: (g: 'status' | 'priority') => void
   daySub: 'plan' | 'review' | 'week'
+  timerPanel: boolean
   dayDate: Date
   setDaySub: (s: 'plan' | 'review' | 'week') => void
   setDayDate: (d: Date) => void
@@ -106,6 +107,7 @@ export const useUI = create<UI>((set, get) => ({
     })),
   daySub: new Date().getHours() < 15 ? 'plan' : 'review',
   dayDate: new Date(),
+  timerPanel: false,
   setDaySub: (daySub) => set({ daySub }),
   setDayDate: (dayDate) => set({ dayDate }),
   setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),

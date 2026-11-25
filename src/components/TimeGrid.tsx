@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPE, type DragEvent } from 'react'
 import { addDays, differenceInCalendarDays, format, isToday, startOfDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { createItem } from '../db'
+import { createItem, useSessions } from '../db'
 import { useCalendarItems } from '../lib/subs'
 import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
@@ -34,6 +34,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
   const all = useCalendarItems()
   const { open, selectedId, setDate, setView } = useUI()
   const items = useMemo(() => expandItems(all, days[0], addDays(days[days.length - 1], 1)), [all, days])
+  const sessions = useSessions(ymd(days[0]), ymd(days[days.length - 1]))
   const scrollRef = useRef<HTMLDivElement>(null)
   const colsRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -303,6 +304,23 @@ export function TimeGrid({ days }: { days: Date[] }) {
                   )}
                   {/* 할 일 드롭 미리보기 */}
                   {dropAt?.day === i && <Ghost a={dropAt.min} b={dropAt.min + 30} label={`${fmtMin(dropAt.min)}에 배치`} />}
+
+                  {/* 실제 집중 기록 (타이머) */}
+                  {sessions
+                    .filter((x) => x.date === ymd(d))
+                    .map((x) => {
+                      const s0 = new Date(x.start)
+                      const top = ((s0.getHours() * 60 + s0.getMinutes()) / 60) * H
+                      const span = (new Date(x.end).getTime() - s0.getTime()) / 60000
+                      return (
+                        <div
+                          key={x.id}
+                          className="pointer-events-auto absolute right-0 z-[15] w-[3px] rounded-full bg-danger/70"
+                          style={{ top, height: Math.max((span / 60) * H, 3) }}
+                          title={`⏱ ${x.title} · ${x.minutes}분 집중`}
+                        />
+                      )
+                    })}
 
                   {/* 현재 시각 */}
                   {today && (

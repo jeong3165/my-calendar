@@ -4,6 +4,7 @@ import { updateItem } from '../db'
 import { colorVars, isTimed } from '../lib/items'
 import { hm } from '../lib/date'
 import { toggleOccurrenceDone } from '../lib/recur'
+import { startFocus } from '../lib/timer'
 
 /* ───────── 아이콘 (선 아이콘, 1.8px) ───────── */
 const P: Record<string, ReactNode> = {
@@ -248,3 +249,24 @@ export function Kbd({ children }: { children: ReactNode }) {
 
 export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 export const MOD = isMac ? '⌘' : 'Ctrl'
+
+/** ▶ 집중 시작 (작은 버튼) */
+export function FocusButton({ item, label = false, className = '' }: { item: Pick<Item, 'id' | 'title'>; label?: boolean; className?: string }) {
+  return (
+    <button
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation()
+        void startFocus(item)
+      }}
+      title="이 항목에 집중 시작 (타이머)"
+      aria-label="집중 시작"
+      className={`flex shrink-0 items-center gap-1 rounded-[4px] text-fg3 hover:bg-hover hover:text-danger ${label ? 'h-7 px-2 text-[13px] text-fg2' : 'h-6 w-6 justify-center'} ${className}`}
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden>
+        <path d="M3 1.8v8.4a.6.6 0 0 0 .9.5l6.6-4.2a.6.6 0 0 0 0-1L3.9 1.3a.6.6 0 0 0-.9.5z" />
+      </svg>
+      {label && '집중'}
+    </button>
+  )
+}

@@ -1,4 +1,4 @@
-import type { Item, Journal } from '../types'
+import type { FocusSession, Item, Journal } from '../types'
 import type { Tombstone } from '../db'
 
 /** GitHub 비공개 저장소에 저장되는 파일 형식 */
@@ -9,6 +9,7 @@ export type SyncFile = {
   items: Item[]
   deleted: Record<string, string> // id → 삭제 시각
   journal?: Journal[] // 하루 기록 (날짜별, 나중에 고친 쪽이 이김)
+  sessions?: FocusSession[] // 집중 타이머 기록
 }
 
 const KEEP_TOMBSTONE_DAYS = 180
@@ -20,10 +21,10 @@ const KEEP_TOMBSTONE_DAYS = 180
  * - 오래된 삭제 기록은 정리
  */
 export function mergeData(
-  local: { items: Item[]; tombstones: Tombstone[]; journal?: Journal[] },
+  local: { items: Item[]; tombstones: Tombstone[]; journal?: Journal[]; sessions?: FocusSession[] },
   remote: SyncFile | null,
   now = new Date(),
-): { items: Item[]; deleted: Record<string, string>; journal: Journal[] } {
+): { items: Item[]; deleted: Record<string, string>; journal: Journal[]; sessions: FocusSession[] } {
   const deleted = new Map<string, string>()
   const addTomb = (id: string, at: string) => {
     const cur = deleted.get(id)
@@ -56,7 +57,19 @@ export function mergeData(
     if (!cur || j.updatedAt > cur.updatedAt) journal.set(j.date, j)
   }
 
+  // 집중 기록: id 별로 합치고, 지운 기록은 뺀다
+  const sessions = new Map<string, FocusSession>()
+  for (const x of [...(remote?.sessions ?? []), ...(local.sessions ?? [])]) {
+    const cur = sessions.get(x.id)
+    if (!cur || x.updatedAt > cur.updatedAt) sessions.set(x.id, x)
+  }
+  for (const [id, x] of sessions) {
+    const at = deleted.get(id)
+    if (at && at >= x.updatedAt) sessions.delete(id)
+  }
+
   return {
+    sessions: [...sessions.values()].sort((a, b) => a.start.localeCompare(b.start)),
     journal: [...journal.values()].sort((a, b) => a.date.localeCompare(b.date)),
     items: [...items.values()].sort((a, b) => a.id.localeCompare(b.id)),
     deleted: Object.fromEntries([...deleted.entries()].sort(([a], [b]) => a.localeCompare(b))),
@@ -64,7 +77,12 @@ export function mergeData(
 }
 
 /** 내용이 같은지 빠르게 비교하기 위한 지문 */
-export function signature(items: Pick<Item, 'id' | 'updatedAt'>[], deleted: Record<string, string> | Tombstone[], journal: Pick<Journal, 'date' | 'updatedAt'>[] = []): string {
+export function signature(
+  items: Pick<Item, 'id' | 'updatedAt'>[],
+  deleted: Record<string, string> | Tombstone[],
+  journal: Pick<Journal, 'date' | 'updatedAt'>[] = [],
+  sessions: Pick<FocusSession, 'id' | 'updatedAt'>[] = [],
+): string {
   const i = items
     .map((x) => `${x.id}@${x.updatedAt}`)
     .sort()
@@ -76,5 +94,9 @@ export function signature(items: Pick<Item, 'id' | 'updatedAt'>[], deleted: Reco
     .map((x) => `${x.date}@${x.updatedAt}`)
     .sort()
     .join(',')
-  return `${i}|${d}|${j}`
+  const f = sessions
+    .map((x) => `${x.id}@${x.updatedAt}`)
+    .sort()
+    .join(',')
+  return `${i}|${d}|${j}|${f}`
 }

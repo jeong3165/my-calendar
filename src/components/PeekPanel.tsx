@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { addDays, addMinutes, differenceInCalendarDays, startOfDay } from 'date-fns'
-import { createItem, updateItem } from '../db'
+import { createItem, deleteSession, updateItem, useItemSessions } from '../db'
+import { fmtMinutes } from '../lib/review'
 import { fmtWhen } from './viewUtil'
 import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
@@ -9,7 +10,7 @@ import { COLORS, COLOR_LABEL, PRIORITY_LABEL, STATUS_LABEL, type Status } from '
 import { statusOf } from '../lib/dbview'
 import { parseYmd, toLocalInput, ymd } from '../lib/date'
 import { allTags, colorVars, isTimed, tagColor } from '../lib/items'
-import { Checkbox, Icon, type IconName } from './ui'
+import { Checkbox, FocusButton, Icon, type IconName } from './ui'
 import { baseDate, changeOccurrence, deleteSmart, isRecurring, repeatLabel, resolveItem, toggleOccurrenceDone, touchesTime, updateSmart } from '../lib/recur'
 import { RemindEditor, RepeatEditor } from './PeekExtras'
 import { format } from 'date-fns'
@@ -38,6 +39,7 @@ export function PeekPanel() {
           )}
         </span>
         <div className="flex-1" />
+        {!item.readonly && <FocusButton item={item} label />}
         {!item.readonly && <button
           onClick={async () => {
             if (!item.occ && !confirm(`'${item.title || '제목 없음'}'을(를) 삭제할까요?${isRecurring(item) ? '\n반복 일정 전체가 삭제돼요.' : ''}`)) return
@@ -173,6 +175,10 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
 
         <Prop icon="repeat" label="반복">
           {series && <RepeatEditor item={series} onRemoved={() => occ && open(occ.seriesId)} />}
+        </Prop>
+
+        <Prop icon="clock" label="집중 기록">
+          <FocusLog itemId={item.id} />
         </Prop>
 
         <Prop icon="bell" label="알림">
@@ -623,6 +629,39 @@ function ReadonlyBody({ item }: { item: Item }) {
           내 일정으로 복사
         </button>
       </div>
+    </div>
+  )
+}
+
+/** 이 항목의 집중 기록 (반복이면 모든 회차 합) */
+function FocusLog({ itemId }: { itemId: string }) {
+  const list = useItemSessions(itemId)
+  const [openList, setOpenList] = useState(false)
+  const total = list.reduce((s, x) => s + x.minutes, 0)
+  if (!list.length) return <p className="px-2 py-1 text-[13px] text-fg3">아직 없어요. 위쪽 ▶ 집중을 눌러 타이머를 시작해 보세요.</p>
+  const recent = [...list].sort((a, b) => b.start.localeCompare(a.start))
+  return (
+    <div className="px-2 py-1 text-[13px]">
+      <button onClick={() => setOpenList(!openList)} className="hover:underline">
+        총 <b>{fmtMinutes(total)}</b> · {list.length}회 {openList ? '▴' : '▾'}
+      </button>
+      {openList && (
+        <ul className="mt-1 flex flex-col gap-0.5 text-[12px] text-fg2">
+          {recent.slice(0, 20).map((x) => (
+            <li key={x.id} className="group flex items-center gap-2">
+              <span className="tnum">{format(new Date(x.start), 'M/d HH:mm', { locale: ko })}</span>
+              <span>{x.minutes}분</span>
+              <button
+                onClick={() => confirm('이 집중 기록을 지울까요?') && deleteSession(x.id)}
+                className="invisible text-fg3 group-hover:visible hover:text-danger"
+                aria-label="기록 삭제"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

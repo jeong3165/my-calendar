@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { addDays, format, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { createItem, saveJournal, useJournal, useJournals } from '../db'
+import { createItem, saveJournal, useJournal, useJournals, useSessions } from '../db'
 import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
 import type { Item, Journal } from '../types'
@@ -9,7 +9,7 @@ import { WEEK, parseYmd, relDay, ymd } from '../lib/date'
 import { colorVars, tagColor, taskKey } from '../lib/items'
 import { blockMinutes, dayData, fmtMinutes, inboxTasks, moveToDate, moveToInbox, MOOD_LABEL, MOODS, overdueTasks } from '../lib/review'
 import { TimeGrid } from './TimeGrid'
-import { Checkbox, Icon, toggleDone } from './ui'
+import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 import { fmtWhen } from './viewUtil'
 
 export function DayView() {
@@ -151,7 +151,7 @@ function Block({ title, count, hint, action, children }: { title: string; count:
   )
 }
 
-function PlanRow({ t, meta, children }: { t: Item; meta?: ReactNode; children?: ReactNode }) {
+function PlanRow({ t, meta, children, focusMin }: { t: Item; meta?: ReactNode; children?: ReactNode; focusMin?: number }) {
   const open = useUI((s) => s.open)
   return (
     <li
@@ -169,7 +169,11 @@ function PlanRow({ t, meta, children }: { t: Item; meta?: ReactNode; children?: 
         {meta && <span className="tnum shrink-0 text-[12px] text-fg2">{meta}</span>}
         {t.priority === 'high' && !t.done && <Icon name="flag" size={11} className="shrink-0 text-danger" />}
       </button>
-      <span className="flex shrink-0 gap-0.5 opacity-70 group-hover:opacity-100">{children}</span>
+      <span className="flex shrink-0 items-center gap-0.5 opacity-70 group-hover:opacity-100">
+        {focusMin ? <span className="tnum mr-1 text-[12px] text-danger">⏱ {fmtMinutes(focusMin)}</span> : null}
+        {!t.done && <FocusButton item={t} />}
+        {children}
+      </span>
     </li>
   )
 }
@@ -208,7 +212,8 @@ function ReviewView() {
   const dayDate = useUI((s) => s.dayDate)
   const date = ymd(dayDate)
   const journal = useJournal(date)
-  const d = useMemo(() => dayData(items, date, journal), [items, date, journal])
+  const sessions = useSessions(date, date)
+  const d = useMemo(() => dayData(items, date, journal, sessions), [items, date, journal, sessions])
   const tomorrow = ymd(addDays(dayDate, 1))
   const left = d.planned.filter((p) => !p.done && !p.occ) // 반복 회차는 옮기지 않음
 
@@ -218,7 +223,16 @@ function ReviewView() {
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
           <Stat label="완료율" value={d.rate === null ? '—' : `${Math.round(d.rate * 100)}%`} sub={d.planned.length ? `${d.hasPlan ? '계획' : '할 일'} ${d.planned.length}개 중 ${d.plannedDone.length}개` : '계획한 일이 없어요'} bar={d.rate ?? 0} />
           <Stat label="끝낸 일" value={`${d.plannedDone.length + d.unplannedDone.length}개`} sub={d.unplannedDone.length ? `계획 밖 ${d.unplannedDone.length}개 포함` : '계획한 일 기준'} />
-          <Stat label="집중 시간" value={fmtMinutes(d.doneMinutes)} sub={`계획 ${fmtMinutes(d.plannedMinutes)} (시간 블록)`} bar={d.plannedMinutes ? Math.min(1, d.doneMinutes / d.plannedMinutes) : 0} />
+          {d.focusCount ? (
+            <Stat
+              label="집중 시간 ⏱"
+              value={fmtMinutes(d.focusMinutes)}
+              sub={`타이머 ${d.focusCount}회 · 계획 ${fmtMinutes(d.plannedMinutes)}`}
+              bar={d.plannedMinutes ? Math.min(1, d.focusMinutes / d.plannedMinutes) : 0}
+            />
+          ) : (
+            <Stat label="집중 시간" value={fmtMinutes(d.doneMinutes)} sub={`끝낸 시간 블록 기준 · 계획 ${fmtMinutes(d.plannedMinutes)}`} bar={d.plannedMinutes ? Math.min(1, d.doneMinutes / d.plannedMinutes) : 0} />
+          )}
           <Stat label="일정" value={`${d.events.length}개`} sub={fmtMinutes(d.eventMinutes)} />
         </div>
 
@@ -231,7 +245,7 @@ function ReviewView() {
           {d.planned.length === 0 && <p className="px-1 text-[13px] text-fg3">계획한 일이 없어요.</p>}
           <ul>
             {d.planned.map((t) => (
-              <PlanRow key={t.id} t={t} meta={blockMinutes(t) ? fmtMinutes(blockMinutes(t)) : undefined}>
+              <PlanRow key={t.id} t={t} meta={blockMinutes(t) ? `계획 ${fmtMinutes(blockMinutes(t))}` : undefined} focusMin={d.focusByItem.get(t.id)}>
                 {!t.done && !t.occ && <Act onClick={() => moveToDate(t, tomorrow)}>내일로</Act>}
               </PlanRow>
             ))}
@@ -248,7 +262,7 @@ function ReviewView() {
             <h3 className="mb-1 px-1 text-[14px] font-semibold">계획에 없었지만 끝낸 일</h3>
             <ul>
               {d.unplannedDone.map((t) => (
-                <PlanRow key={t.id} t={t} />
+                <PlanRow key={t.id} t={t} focusMin={d.focusByItem.get(t.id)} />
               ))}
             </ul>
           </section>
@@ -338,7 +352,9 @@ function WeekView() {
   const weekJ = useJournal(weekKey)
   const today = ymd(new Date())
 
-  const rows = useMemo(() => days.map((d) => dayData(items, d, journals.find((j) => j.date === d))), [items, journals, days.join()])
+  const weekSessions = useSessions(days[0], days[6])
+  const rows = useMemo(() => days.map((d) => dayData(items, d, journals.find((j) => j.date === d), weekSessions)), [items, journals, weekSessions, days.join()])
+  const weekFocus = rows.reduce((s, r) => s + r.focusMinutes, 0)
   const past = rows.filter((r) => r.date <= today)
   const rated = past.filter((r) => r.rate !== null)
   const doneAll = rows.flatMap((r) => [...r.plannedDone, ...r.unplannedDone]).filter((t, i, a) => a.findIndex((x) => x.id === t.id) === i)
@@ -359,7 +375,11 @@ function WeekView() {
             sub={`${rated.length}일 기준`}
             bar={rated.length ? rated.reduce((s, r) => s + r.rate!, 0) / rated.length : 0}
           />
-          <Stat label="집중 시간" value={fmtMinutes(rows.reduce((s, r) => s + r.doneMinutes, 0))} sub="끝낸 시간 블록 합" />
+          {weekFocus ? (
+            <Stat label="집중 시간 ⏱" value={fmtMinutes(weekFocus)} sub={`타이머 ${rows.reduce((s, r) => s + r.focusCount, 0)}회 · 하루 평균 ${fmtMinutes(weekFocus / Math.max(1, rows.filter((r) => r.focusCount).length))}`} />
+          ) : (
+            <Stat label="집중 시간" value={fmtMinutes(rows.reduce((s, r) => s + r.doneMinutes, 0))} sub="끝낸 시간 블록 합" />
+          )}
           <Stat label="기분" value={avgMood ? MOODS[Math.round(avgMood) - 1] : '—'} sub={avgMood ? `평균 ${avgMood.toFixed(1)} / 5 · ${moods.length}일 기록` : '기록이 없어요'} />
         </div>
 
@@ -391,6 +411,7 @@ function WeekView() {
                   <span className="tnum hidden w-[110px] shrink-0 text-[12px] text-fg2 sm:inline">
                     {future ? `예정 ${r.planned.length}개` : `${r.plannedDone.length + r.unplannedDone.length}개 끝냄`}
                   </span>
+                  <span className="tnum hidden w-[64px] shrink-0 text-[12px] text-danger sm:inline">{r.focusMinutes ? `⏱ ${fmtMinutes(r.focusMinutes)}` : ''}</span>
                   <span className="min-w-0 flex-1 truncate text-[13px] text-fg2">{j?.note ?? ''}</span>
                 </button>
               )

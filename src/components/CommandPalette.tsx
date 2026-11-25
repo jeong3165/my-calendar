@@ -1,6 +1,7 @@
 import { useMemo, useState, type KeyboardEvent } from 'react'
 import { createItem, exportJSON, updateItem, useItems } from '../db'
 import { useUI } from '../store'
+import { startFocus } from '../lib/timer'
 import type { Item } from '../types'
 import { hm, parseYmd, relDay, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
@@ -62,6 +63,8 @@ export function CommandPalette() {
       { id: 'notify', icon: 'bell', label: '알림 설정', run: () => ui.setSettings(true, 'notify') },
       { id: 'sync', icon: 'upload', label: 'GitHub 동기화 설정 / 지금 동기화', run: () => ui.setSettings(true, 'sync') },
       { id: 'today', icon: 'sun', label: '오늘로 이동', hint: '.', run: () => ui.goToday() },
+      { id: 'focus', icon: 'clock', label: '집중 타이머 시작', hint: 'F', run: () => void startFocus() },
+      { id: 'timer', icon: 'clock', label: '집중 타이머 창 열기 / 설정', run: () => useUI.setState({ timerPanel: true }) },
       { id: 'plan', icon: 'sun', label: '오늘 계획 세우기', hint: 'P', run: () => (ui.setMode('day'), ui.setDaySub('plan')) },
       { id: 'review', icon: 'done', label: '하루 정리 (회고)', run: () => (ui.setMode('day'), ui.setDaySub('review'), ui.setDayDate(new Date())) },
       { id: 'weekly', icon: 'calendar', label: '주간 리뷰', run: () => (ui.setMode('day'), ui.setDaySub('week'), ui.setDayDate(new Date())) },

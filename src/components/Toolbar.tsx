@@ -1,9 +1,11 @@
 import { addDays, format, isSameMonth, isSameYear, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { useEffect, useState } from 'react'
 import { useUI } from '../store'
 import type { Mode, View } from '../types'
 import { createItem } from '../db'
 import { FilterBar } from './FilterBar'
+import { fmtClock, remainingMs, useTimer } from '../lib/timer'
 import { weekDays } from '../lib/date'
 import { Icon, type IconName } from './ui'
 
@@ -70,6 +72,7 @@ export function Toolbar() {
           <span className="hidden text-[13px] whitespace-nowrap text-fg2 sm:inline md:text-[14px]">{t.sub}</span>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
+          <TimerButton />
           <button
             onClick={() => openImport()}
             className="flex h-8 items-center gap-1.5 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover"
@@ -173,5 +176,27 @@ export function Toolbar() {
         </div>
       </div>
     </header>
+  )
+}
+
+/** 툴바의 ⏱ 버튼: 쉬는 중이면 빠른 시작 창, 도는 중이면 남은 시간 */
+function TimerButton() {
+  const t = useTimer()
+  const active = t.phase !== 'idle'
+  const [, force] = useState(0)
+  useEffect(() => {
+    if (!active || !t.running) return
+    const id = setInterval(() => force((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [active, t.running])
+  return (
+    <button
+      onClick={() => useUI.setState((s) => ({ timerPanel: !s.timerPanel }))}
+      className={`tnum flex h-8 items-center gap-1.5 rounded-[6px] border px-2.5 text-[13px] hover:bg-hover ${active ? 'border-danger/40 font-medium text-danger' : 'border-line-strong'}`}
+      title="집중 타이머 (F)"
+    >
+      <Icon name="clock" size={15} />
+      {active ? fmtClock(remainingMs(t)) : <span className="hidden lg:inline">집중</span>}
+    </button>
   )
 }

@@ -100,3 +100,15 @@ export type Subscription = {
   color: NotionColor
   enabled: boolean
 }
+
+/** 집중 타이머 기록 (실제로 집중한 시간) */
+export type FocusSession = {
+  id: string
+  itemId?: string // 어떤 항목에 집중했는지 (반복 회차는 'id::날짜')
+  title: string
+  start: string // 시작 시각 ISO
+  end: string // 끝난 시각 ISO
+  minutes: number // 멈춘 시간을 뺀 실제 집중 시간
+  date: string // 시작한 날 YYYY-MM-DD
+  updatedAt: string
+}

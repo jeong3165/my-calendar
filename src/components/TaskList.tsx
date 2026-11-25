@@ -7,7 +7,7 @@ import { hm, relDay, ymd } from '../lib/date'
 import { colorVars, sectionTasks, tagColor, taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
 import { repeatLabel } from '../lib/recur'
-import { Checkbox, Icon, toggleDone } from './ui'
+import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 
 export const sectionTitle = (s: Section) =>
   s.kind === 'today' ? '오늘' : s.kind === 'inbox' ? '인박스' : s.kind === 'upcoming' ? '예정' : s.kind === 'done' ? '완료됨' : `#${s.tag}`
@@ -54,7 +54,10 @@ function TaskRow({ t, selected, onOpen }: { t: Item; selected: boolean; onOpen: 
         <Checkbox checked={!!t.done} onChange={() => toggleDone(t)} size={15} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className={`truncate text-[14px] leading-[20px] ${t.done ? 'text-fg3 line-through' : ''}`}>{t.title || '제목 없음'}</div>
+        <div className="flex items-center gap-1">
+          <div className={`min-w-0 flex-1 truncate text-[14px] leading-[20px] ${t.done ? 'text-fg3 line-through' : ''}`}>{t.title || '제목 없음'}</div>
+          {!t.done && <FocusButton item={t} className="opacity-0 group-hover:opacity-100 focus:opacity-100" />}
+        </div>
         {(key || t.priority === 'high' || t.tags.length > 0 || t.doing) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-4 text-fg2">
             {key && (
