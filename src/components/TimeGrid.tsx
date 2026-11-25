@@ -35,6 +35,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
   const holiday = useHoliday()
   const { open, selectedId, setDate, setView } = useUI()
   const H = useUI((s) => s.hourH) // 1시간 높이(px): 설정·Ctrl+휠로 조절
+  const showFocus = useUI((s) => s.showFocus)
   const items = useMemo(() => expandItems(all, days[0], addDays(days[days.length - 1], 1)), [all, days])
   const sessions = useSessions(ymd(days[0]), ymd(days[days.length - 1]))
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -387,7 +388,8 @@ export function TimeGrid({ days }: { days: Date[] }) {
                   {dropAt?.day === i && <Ghost H={H} a={dropAt.min} b={dropAt.min + 30} label={`${fmtMin(dropAt.min)}에 배치`} />}
 
                   {/* 실제 집중 기록 (타이머) */}
-                  {sessions
+                  {showFocus &&
+                    sessions
                     .filter((x) => x.date === ymd(d))
                     .map((x) => {
                       const s0 = new Date(x.start)
@@ -398,7 +400,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                           key={x.id}
                           className="pointer-events-auto absolute right-0 z-[15] w-[3px] rounded-full bg-danger/70"
                           style={{ top, height: Math.max((span / 60) * H, 3) }}
-                          title={`⏱ ${x.title} · ${x.minutes}분 집중`}
+                          title={`⏱ 집중 타이머 기록: ${x.title} · ${x.minutes}분 (설정 → 화면에서 숨길 수 있어요)`}
                         />
                       )
                     })}

@@ -65,6 +65,7 @@ type UI = {
   uiScale: number
   hourH: number
   boardW: Record<string, number> // 보드 칸별 너비
+  showFocus: boolean // 주·일 보기에 집중 타이머 기록(빨간 세로 막대) 표시
   setLayout: (p: Partial<Layout>) => void
   setBoardW: (key: string, w: number | null) => void
   projectId: string | null
@@ -123,9 +124,9 @@ async function discardIfEmptyDraft(draftId: string | null) {
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
-type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number; boardW: Record<string, number> }
+type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number; boardW: Record<string, number>; showFocus: boolean }
 const LAYOUT_KEY = 'my-calendar.layout'
-export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48, boardW: {} }
+export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48, boardW: {}, showFocus: true }
 function loadLayout(): Partial<Layout> {
   try {
     return JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? '{}')
@@ -169,9 +170,9 @@ export const useUI = create<UI>((set, get) => ({
   },
   setLayout: (patch) => {
     set(patch)
-    const { sidebarW, peekW, uiScale, hourH, boardW } = get()
+    const { sidebarW, peekW, uiScale, hourH, boardW, showFocus } = get()
     try {
-      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH, boardW }))
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH, boardW, showFocus }))
     } catch {
       /* ignore */
     }

@@ -487,7 +487,7 @@ function BriefingSection() {
 
 /* ───────── 화면 크기 ───────── */
 function DisplayTab() {
-  const { uiScale, hourH, sidebarW, peekW, setLayout } = useUI()
+  const { uiScale, hourH, sidebarW, peekW, showFocus, setLayout } = useUI()
   const row = (label: string, hint: string, control: React.ReactNode) => (
     <div className="flex flex-col gap-1.5">
       <span className="text-[13px] font-medium">{label}</span>
@@ -523,6 +523,13 @@ function DisplayTab() {
           <input type="range" min={360} max={760} value={peekW} onChange={(e) => setLayout({ peekW: Number(e.target.value) })} className="flex-1 accent-[var(--accent)]" aria-label="상세 패널 너비" />
         </div>,
       )}
+      <label className="flex items-start gap-2.5 text-[13px]">
+        <input type="checkbox" checked={showFocus} onChange={(e) => setLayout({ showFocus: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
+        <span>
+          <b className="font-medium">집중 기록 표시</b>
+          <span className="block text-[12px] text-fg2">주·일 보기에서 집중 타이머로 집중한 시간대를 칸 오른쪽에 빨간 세로 막대로 보여 줘요. 끄면 숨겨요(기록은 그대로).</span>
+        </span>
+      </label>
       <button onClick={() => setLayout(LAYOUT_DEFAULT)} className="self-start rounded-[6px] border border-line-strong px-3 py-1.5 text-[13px] hover:bg-hover">
         모두 기본값으로
       </button>
