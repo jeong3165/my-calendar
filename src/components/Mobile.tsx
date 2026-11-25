@@ -17,6 +17,7 @@ const TABS: { m: Mode; label: string; icon: IconName }[] = [
   { m: 'board', label: '보드', icon: 'board' },
   { m: 'day', label: '하루', icon: 'sun' },
   { m: 'habits', label: '습관', icon: 'flame' },
+  { m: 'chat', label: 'AI', icon: 'chat' },
 ]
 
 export function BottomNav() {

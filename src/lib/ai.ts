@@ -85,7 +85,7 @@ export async function extractSchedule(sources: ImportSource[], hint: string, set
   }
 }
 
-function friendlyError(e: unknown): string {
+export function friendlyError(e: unknown): string {
   if (e instanceof Anthropic.AuthenticationError) return 'API 키가 올바르지 않아요. 설정에서 키를 확인해 주세요.'
   if (e instanceof Anthropic.PermissionDeniedError) return '이 API 키로는 선택한 모델을 쓸 수 없어요. 설정에서 다른 모델을 골라 보세요.'
   if (e instanceof Anthropic.RateLimitError) return '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'

@@ -13,6 +13,22 @@ export const db = new Dexie('my-notion-calendar') as Dexie & {
   journal: EntityTable<Journal, 'date'>
   subcache: EntityTable<SubCache, 'id'>
   sessions: EntityTable<FocusSession, 'id'>
+  chats: EntityTable<Chat, 'id'>
+}
+
+/** AI 채팅 대화 (이 기기에만 저장, 동기화하지 않음) */
+export type ChatAction = { kind: 'add' | 'done'; summary: string; undo: { created: string[]; before: Item[] }; undone?: boolean }
+export type Chat = {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  /** Claude API 에 그대로 다시 보내는 대화 기록 (BetaMessageParam[]) */
+  messages: unknown[]
+  /** 채팅에서 바꾼 캘린더 내용 (tool_use id 별) — 되돌리기용 */
+  actions: Record<string, ChatAction>
+  /** 쓴 토큰 (대략적인 비용 안내용) */
+  usage?: { input: number; output: number; cacheRead: number; searches: number }
 }
 
 /** 구독 캘린더를 마지막으로 받아 온 결과 (오프라인에서도 보이도록) */
@@ -42,6 +58,14 @@ db.version(5).stores({
   journal: 'date, updatedAt',
   subcache: 'id',
   sessions: 'id, date, itemId',
+})
+db.version(6).stores({
+  items: 'id, type, start, due, updatedAt',
+  tombstones: 'id, deletedAt',
+  journal: 'date, updatedAt',
+  subcache: 'id',
+  sessions: 'id, date, itemId',
+  chats: 'id, updatedAt',
 })
 
 const uid = () =>

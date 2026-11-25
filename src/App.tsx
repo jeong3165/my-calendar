@@ -12,6 +12,7 @@ import { BoardView } from './components/BoardView'
 import { DayView } from './components/DayView'
 import { ProjectView } from './components/ProjectView'
 import { HabitsView } from './components/HabitsView'
+import { ChatView } from './components/ChatView'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
@@ -95,6 +96,7 @@ export default function App() {
         KeyP: () => ui.setMode('day'),
         KeyA: () => useUI.setState({ assistantOpen: true }),
         KeyH: () => ui.setMode('habits'),
+        KeyC: () => ui.setMode('chat'),
         KeyF: () => {
           if (useTimer.getState().phase !== 'idle') return toggleTimer()
           const sel = ui.selectedId
@@ -234,13 +236,13 @@ export default function App() {
         <Toolbar />
         <div className="flex min-h-0 flex-1 border-t border-line">
           <div className="flex min-w-0 flex-1 flex-col" {...(isMobile && mode === 'calendar' ? swipe : {})}>
-            {mode === 'tasks' ? <MobileTasksView /> : mode === 'habits' ? <HabitsView /> : mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
+            {mode === 'tasks' ? <MobileTasksView /> : mode === 'habits' ? <HabitsView /> : mode === 'chat' ? <ChatView /> : mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
           </div>
           {selectedId && <PeekPanel />}
         </div>
         {isMobile && <BottomNav />}
       </main>
-      {isMobile && !selectedId && <Fab />}
+      {isMobile && !selectedId && mode !== 'chat' && <Fab />}
       {quickAddOpen && <QuickAddSheet />}
       {paletteOpen && <CommandPalette />}
       {importOpen && <ImportDialog />}

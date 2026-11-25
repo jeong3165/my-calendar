@@ -31,6 +31,7 @@ const MODES: { m: Mode; label: string; icon: IconName; key: string }[] = [
   { m: 'board', label: '보드', icon: 'board', key: 'B' },
   { m: 'day', label: '하루', icon: 'sun', key: 'P' },
   { m: 'habits', label: '습관', icon: 'flame', key: 'H' },
+  { m: 'chat', label: 'AI 채팅', icon: 'chat', key: 'C' },
 ]
 const DAY_SUBS = [
   ['plan', '아침 계획'],
@@ -50,6 +51,8 @@ export function Toolbar() {
           ? { main: '할 일', sub: '' }
           : mode === 'habits'
           ? { main: '습관', sub: '반복 할 일의 연속 기록' }
+          : mode === 'chat'
+          ? { main: 'AI 채팅', sub: '웹 검색 · 내 일정 확인·추가' }
           : mode === 'project'
           ? { main: '프로젝트', sub: '할 일을 묶어서 관리' }
           : mode === 'board'
@@ -110,7 +113,7 @@ export function Toolbar() {
 
       {/* 노션식 보기 탭 + 보기별 도구 (휴대폰에서 캘린더는 위 한 줄에 다 들어감) */}
       {isMobile && <TimerButton />}
-      {!(isMobile && ['calendar', 'project', 'habits', 'tasks'].includes(mode)) && (
+      {!(isMobile && ['calendar', 'project', 'habits', 'tasks', 'chat'].includes(mode)) && (
       <div className={isMobile ? 'flex flex-wrap items-center gap-1.5 [&_button]:text-[12px]' : 'flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line pb-1.5'}>
         <div className={`gap-0.5 ${isMobile ? 'hidden' : 'flex'}`} role="tablist" aria-label="보기">
           {MODES.map(({ m, label, icon, key }) => (
@@ -131,7 +134,7 @@ export function Toolbar() {
         <div className={isMobile ? 'flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto' : 'ml-auto flex flex-wrap items-center gap-1.5'}>
           {mode === 'calendar' ? (
             <CalNav />
-          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' ? null : mode === 'day' ? (
+          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' || mode === 'chat' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
                 <>
