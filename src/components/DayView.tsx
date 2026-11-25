@@ -11,6 +11,7 @@ import { WEEK, parseYmd, relDay, ymd } from '../lib/date'
 import { colorVars, tagColor, taskKey } from '../lib/items'
 import { blockMinutes, dayData, fmtMinutes, inboxTasks, moveToDate, moveToInbox, MOOD_LABEL, MOODS, overdueTasks } from '../lib/review'
 import { TimeGrid } from './TimeGrid'
+import { ReportView } from './ReportView'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 import { fmtWhen } from './viewUtil'
 
@@ -18,6 +19,7 @@ export function DayView() {
   const sub = useUI((s) => s.daySub)
   if (sub === 'plan') return <PlanView />
   if (sub === 'week') return <WeekView />
+  if (sub === 'month') return <ReportView />
   return <ReviewView />
 }
 

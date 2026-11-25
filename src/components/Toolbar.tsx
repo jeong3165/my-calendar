@@ -1,4 +1,4 @@
-import { addDays, format, isSameMonth, isSameYear, startOfWeek } from 'date-fns'
+import { addDays, addMonths, format, isSameMonth, isSameYear, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useEffect, useState } from 'react'
 import { useUI } from '../store'
@@ -37,6 +37,7 @@ const DAY_SUBS = [
   ['plan', '아침 계획'],
   ['review', '하루 정리'],
   ['week', '주간 리뷰'],
+  ['month', '월간 리포트'],
 ] as const
 
 export function Toolbar() {
@@ -59,10 +60,12 @@ export function Toolbar() {
           ? { main: '할 일 보드', sub: '끌어다 놓아 상태 바꾸기' }
           : daySub === 'plan'
             ? { main: '아침 계획', sub: format(new Date(), 'M월 d일 EEEE', { locale: ko }) }
+            : daySub === 'month'
+              ? { main: '월간 리포트', sub: format(dayDate, 'yyyy년 M월') }
             : daySub === 'review'
               ? { main: '하루 정리', sub: format(dayDate, 'yyyy년 M월 d일 EEEE', { locale: ko }) }
               : { main: '주간 리뷰', sub: `${format(weekStart, 'M월 d일')} – ${format(addDays(weekStart, 6), 'M월 d일')}` }
-  const dayStep = (dir: 1 | -1) => setDayDate(addDays(dayDate, daySub === 'week' ? 7 * dir : dir))
+  const dayStep = (dir: 1 | -1) => setDayDate(daySub === 'month' ? addMonths(dayDate, dir) : addDays(dayDate, daySub === 'week' ? 7 * dir : dir))
 
   async function newTask() {
     const it = await createItem({ type: 'task' })
@@ -138,10 +141,10 @@ export function Toolbar() {
             <>
               {daySub !== 'plan' && (
                 <>
-                  <button onClick={() => setDayDate(new Date())} className="h-7 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover">
-                    {daySub === 'week' ? '이번 주' : '오늘'}
+                  <button onClick={() => setDayDate(new Date())} className="h-7 shrink-0 whitespace-nowrap rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover">
+                    {daySub === 'week' ? '이번 주' : daySub === 'month' ? '이번 달' : '오늘'}
                   </button>
-                  <div className="flex">
+                  <div className="flex shrink-0">
                     <button onClick={() => dayStep(-1)} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="이전">
                       <Icon name="left" size={17} />
                     </button>
@@ -151,14 +154,14 @@ export function Toolbar() {
                   </div>
                 </>
               )}
-              <div className="flex rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="하루 보기">
+              <div className="flex shrink-0 rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="하루 보기">
                 {DAY_SUBS.map(([k, l]) => (
                   <button
                     key={k}
                     role="tab"
                     aria-selected={daySub === k}
                     onClick={() => setDaySub(k)}
-                    className={`h-6 rounded-[5px] px-2.5 text-[13px] ${daySub === k ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
+                    className={`h-6 shrink-0 whitespace-nowrap rounded-[5px] px-2.5 text-[13px] max-md:px-2 ${daySub === k ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
                   >
                     {l}
                   </button>

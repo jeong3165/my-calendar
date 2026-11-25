@@ -1,3 +1,4 @@
+import { MicButton } from './Mic'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createItem, useItems } from '../db'
 import { useUI } from '../store'
@@ -60,11 +61,13 @@ export function Fab() {
 /** 아래에서 올라오는 빠른 추가 창 */
 export function QuickAddSheet() {
   const { setDate, showToast } = useUI()
-  const close = () => useUI.setState({ quickAddOpen: false })
+  const close = () => useUI.setState({ quickAddOpen: false, quickAddVoice: false })
+  const [voice] = useState(() => useUI.getState().quickAddVoice)
   const [text, setText] = useState('')
   const [type, setType] = useState<'task' | 'event'>('task')
   const ref = useRef<HTMLInputElement>(null)
   useEffect(() => {
+    if (voice) return // 음성으로 열면 키보드를 띄우지 않음
     const t = setTimeout(() => ref.current?.focus(), 50)
     return () => clearTimeout(t)
   }, [])
@@ -116,6 +119,7 @@ export function QuickAddSheet() {
             placeholder={type === 'task' ? '예: 내일 3시 치과 #건강 !높음' : '예: 금요일 저녁 7시 동창 모임'}
             className="h-12 min-w-0 flex-1 rounded-[10px] border border-line-strong bg-bg px-3.5 text-[16px] outline-none focus:border-accent"
           />
+          <MicButton value={text} onChange={setText} onError={showToast} autoStart={voice} size={20} className="h-12 w-12 border border-line-strong" />
           <button onClick={add} disabled={!p?.title} className="h-12 shrink-0 rounded-[10px] bg-accent px-4 text-[16px] font-semibold text-white disabled:opacity-40">
             추가
           </button>

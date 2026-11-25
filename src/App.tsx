@@ -14,6 +14,8 @@ import { ProjectView } from './components/ProjectView'
 import { HabitsView } from './components/HabitsView'
 import { ChatView } from './components/ChatView'
 import { BriefingDialog } from './components/BriefingDialog'
+import { DdayDialog } from './components/Dday'
+import { ExportDialog } from './components/ExportDialog'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
@@ -31,7 +33,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen, briefingOpen } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen, briefingOpen, ddayEdit, exportOpen } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -68,8 +70,8 @@ export default function App() {
         if (e.key === 'Escape') ui.scopePrompt.resolve(null)
         return
       }
-      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates || ui.briefingOpen) {
-        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null, briefingOpen: false })
+      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates || ui.briefingOpen || ui.ddayEdit || ui.exportOpen) {
+        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null, briefingOpen: false, ddayEdit: null, exportOpen: false })
         return
       }
       if (e.key === 'Escape') {
@@ -167,6 +169,22 @@ export default function App() {
     }
   }, [])
 
+  // 홈 화면 바로가기(앱 아이콘 길게 누르기) · ?action=add|voice|briefing|chat|dday|export
+  useEffect(() => {
+    const url = new URL(location.href)
+    const action = url.searchParams.get('action')
+    if (!action) return
+    url.searchParams.delete('action')
+    history.replaceState(history.state, '', url.pathname + (url.search === '?' ? '' : url.search) + url.hash)
+    const ui = useUI.getState()
+    if (action === 'add') useUI.setState({ quickAddOpen: true })
+    else if (action === 'voice') useUI.setState({ quickAddOpen: true, quickAddVoice: true })
+    else if (action === 'briefing') useUI.setState({ briefingOpen: true })
+    else if (action === 'chat') ui.setMode('chat')
+    else if (action === 'dday') useUI.setState({ ddayEdit: 'new' })
+    else if (action === 'export') useUI.setState({ exportOpen: true })
+  }, [])
+
   // 휴대폰: 캘린더를 좌우로 쓸어서 이전/다음 (길게 눌러 끄는 중이면 무시)
   const touch = useRef<{ x: number; y: number; t: number } | null>(null)
   const swipe = {
@@ -186,7 +204,7 @@ export default function App() {
   }
 
   // 휴대폰 뒤로가기 버튼으로 열린 창·상세 화면 닫기
-  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt || briefingOpen)
+  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt || briefingOpen || !!ddayEdit || exportOpen)
   const pushed = useRef(false)
   const skipPop = useRef(false)
   useEffect(() => {
@@ -209,6 +227,8 @@ export default function App() {
       else if (ui.templates) useUI.setState({ templates: null })
       else if (ui.assistantOpen) useUI.setState({ assistantOpen: false })
       else if (ui.briefingOpen) useUI.setState({ briefingOpen: false })
+      else if (ui.ddayEdit) useUI.setState({ ddayEdit: null })
+      else if (ui.exportOpen) useUI.setState({ exportOpen: false })
       else if (ui.importOpen) ui.closeImport()
       else if (ui.settingsOpen) ui.setSettings(false)
       else if (ui.paletteOpen) ui.setPalette(false)
@@ -250,6 +270,8 @@ export default function App() {
       {importOpen && <ImportDialog />}
       {assistantOpen && <AssistantDialog />}
       {briefingOpen && <BriefingDialog />}
+      {ddayEdit && <DdayDialog />}
+      {exportOpen && <ExportDialog />}
       {templates && <TemplatesDialog />}
       {settingsOpen && <SettingsDialog />}
       {scopePrompt && <ScopeDialog />}

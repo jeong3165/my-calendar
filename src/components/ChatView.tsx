@@ -9,6 +9,7 @@ import { fileToSource, loadSettings, type ImportSource } from '../lib/importFile
 import type { UserPart } from '../lib/chatAgent'
 import { Icon } from './ui'
 import { Markdown } from './Markdown'
+import { MicButton } from './Mic'
 
 type Block = Anthropic.Beta.BetaContentBlock
 type Param = Anthropic.Beta.BetaContentBlockParam
@@ -271,6 +272,7 @@ export function ChatView() {
                   e.target.value = ''
                 }}
               />
+              <MicButton value={input} onChange={setInput} onDone={() => ta.current?.focus()} onError={showToast} className="h-8 w-8" />
               <textarea
                 ref={ta}
                 value={input}

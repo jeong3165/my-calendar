@@ -47,7 +47,7 @@ function lunarFormatter() {
 export const lunarSupported = () => !!lunarFormatter()
 
 /** 그해 양력 날짜 중 음력 month/day 인 날 (윤달 제외) */
-function lunarToSolar(year: number, month: number, day: number): Date | null {
+export function lunarToSolar(year: number, month: number, day: number): Date | null {
   const f = lunarFormatter()
   if (!f) return null
   const want = `${month}/${day}`

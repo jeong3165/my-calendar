@@ -1,3 +1,4 @@
+import { ddayCalendarItems } from './dday'
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -74,7 +75,10 @@ export function useSubscribedItems(): Item[] {
 export function useCalendarItems(): Item[] {
   const own = useItems()
   const sub = useSubscribedItems()
-  return useMemo(() => (sub.length ? [...own, ...sub] : own), [own, sub])
+  return useMemo(() => {
+    const dd = ddayCalendarItems(own) // 기념일은 캘린더에 종일 일정처럼
+    return sub.length || dd.length ? [...own, ...sub, ...dd] : own
+  }, [own, sub])
 }
 
 /* ───────── 가져오기 ───────── */

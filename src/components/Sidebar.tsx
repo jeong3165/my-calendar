@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
-import { exportJSON, importJSON, useItems } from '../db'
+import { importJSON, useItems } from '../db'
+import { DdaySection } from './Dday'
 import { LAYOUT_DEFAULT, useUI } from '../store'
 import { Resizer } from './Resizer'
 import type { Section } from '../types'
@@ -102,6 +103,8 @@ export function Sidebar() {
 
         <ProjectsSection />
 
+        <DdaySection />
+
         <TemplatesSection />
 
         <SubsSection onSetup={() => setSettings(true, 'subs')} />
@@ -117,7 +120,7 @@ export function Sidebar() {
 
       {/* 백업 */}
       <div className="flex gap-1 border-t border-line px-1.5 py-1.5">
-        <button onClick={() => exportJSON()} className="flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-1.5 text-[12px] text-fg2 hover:bg-hover" title="모든 데이터를 JSON 파일로 저장">
+        <button onClick={() => useUI.setState({ exportOpen: true })} className="flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-1.5 text-[12px] text-fg2 hover:bg-hover" title="엑셀(CSV)로 내보내기 또는 전체 백업(JSON)">
           <Icon name="download" size={14} /> 내보내기
         </button>
         <button onClick={() => fileRef.current?.click()} className="flex flex-1 items-center justify-center gap-1.5 rounded-[6px] py-1.5 text-[12px] text-fg2 hover:bg-hover" title="백업 JSON 파일 불러오기">

@@ -43,10 +43,14 @@ type UI = {
   resetFilters: () => void
   setSort: (s: Sort) => void
   setBoardGroup: (g: 'status' | 'priority' | 'project') => void
-  daySub: 'plan' | 'review' | 'week'
+  daySub: 'plan' | 'review' | 'week' | 'month'
   timerPanel: boolean
   assistantOpen: boolean
   briefingOpen: boolean
+  /** 기념일 편집 창: 'new' 또는 기념일 id */
+  ddayEdit: string | null
+  quickAddVoice: boolean
+  exportOpen: boolean
   quickAddOpen: boolean
   templates: TemplatesView | null
   // 화면 크기 조절 (이 브라우저에 기억)
@@ -60,7 +64,7 @@ type UI = {
   projectId: string | null
   openProject: (id: string) => void
   dayDate: Date
-  setDaySub: (s: 'plan' | 'review' | 'week') => void
+  setDaySub: (s: 'plan' | 'review' | 'week' | 'month') => void
   setDayDate: (d: Date) => void
 
   view: View
@@ -140,6 +144,9 @@ export const useUI = create<UI>((set, get) => ({
   timerPanel: false,
   assistantOpen: false,
   briefingOpen: false,
+  ddayEdit: null,
+  quickAddVoice: false,
+  exportOpen: false,
   quickAddOpen: false,
   templates: null,
   ...LAYOUT_DEFAULT,
@@ -191,6 +198,8 @@ export const useUI = create<UI>((set, get) => ({
   },
   goToday: () => set({ date: new Date() }),
   open: (id, draft = false) => {
+    // 기념일(캘린더에 보이는 가상 일정)은 기념일 편집 창으로
+    if (id.startsWith('dday:')) return set({ ddayEdit: id.split(':')[1] })
     const { draftId, selectedId } = get()
     if (draftId && draftId !== id && draftId === selectedId) void discardIfEmptyDraft(draftId)
     set({ selectedId: id, draftId: draft ? id : null })

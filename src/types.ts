@@ -34,7 +34,7 @@ export type Repeat = {
  */
 export type Item = {
   id: string
-  type: 'event' | 'task' | 'project' | 'template'
+  type: 'event' | 'task' | 'project' | 'template' | 'dday'
   title: string
   start?: string
   end?: string
@@ -51,6 +51,8 @@ export type Item = {
   subtasks?: Subtask[] // 하위 할 일 (체크리스트)
   icon?: string // 프로젝트·템플릿 아이콘 (이모지)
   template?: TemplateData // 템플릿 내용
+  /** 기념일·D-day: 기준 날짜 (음력이면 음력 월/일, 연도는 몰라도 됨) */
+  anniv?: { date: string; yearly: boolean; lunar?: boolean; noYear?: boolean }
   repeat?: Repeat
   exdates?: string[] // 반복에서 빠진 날짜 (YYYY-MM-DD)
   doneDates?: string[] // 반복 할 일: 완료한 회차 날짜

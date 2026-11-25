@@ -1,3 +1,4 @@
+import { MicButton } from './Mic'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createItem, useItems } from '../db'
 import { useUI } from '../store'
@@ -138,6 +139,7 @@ function QuickAdd({ section }: { section: Section }) {
           placeholder="할 일 추가  (예: 내일 3시 치과 #건강 !높음)"
           className="min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none"
         />
+        <MicButton value={text} onChange={setText} onDone={() => ref.current?.focus()} onError={(m) => useUI.getState().showToast(m)} size={14} className="h-6 w-6" />
       </label>
       {parsed && (parsed.date || parsed.tags.length > 0 || parsed.priority || parsed.repeat) && (
         <div className="flex flex-wrap gap-1 px-2 pt-1 text-[11px] text-fg2">

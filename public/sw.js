@@ -1,7 +1,7 @@
 // 오프라인에서도 앱 화면이 열리도록 하는 간단한 서비스 워커
 // - 페이지: 네트워크 우선 (새 버전 반영), 안 되면 저장본
 // - JS/CSS/아이콘: 저장본 우선 (파일명에 해시가 붙어 있어 안전)
-const CACHE = 'my-calendar-v2'
+const CACHE = 'my-calendar-v3'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => {
@@ -23,7 +23,8 @@ self.addEventListener('fetch', (e) => {
     }
     return res
   }
-  if (req.mode === 'navigate') {
+  // 페이지와 앱 정보(manifest: 바로가기 메뉴 등)는 항상 새것 먼저
+  if (req.mode === 'navigate' || req.url.endsWith('.webmanifest')) {
     e.respondWith(fetch(req).then(save).catch(() => caches.match(req).then((r) => r || caches.match('./'))))
     return
   }

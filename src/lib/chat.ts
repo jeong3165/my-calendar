@@ -32,7 +32,7 @@ export const deleteChat = (id: string) => db.chats.delete(id)
 
 /* ───────── 내 캘린더 (내 항목 + 켜 둔 구독 캘린더) ───────── */
 async function allItems(): Promise<Item[]> {
-  const own = (await db.items.toArray()).filter((x) => x.type !== 'template')
+  const own = (await db.items.toArray()).filter((x) => x.type !== 'template' && x.type !== 'dday')
   const subs = useSubs.getState().list.filter((s) => s.enabled)
   if (!subs.length) return own
   const rows = await db.subcache.bulkGet(subs.map((s) => s.id))

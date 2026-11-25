@@ -67,6 +67,10 @@ export function CommandPalette() {
       { id: 'display', icon: 'settings', label: '화면 크기 조절 (글자·시간 칸·패널 너비)', run: () => ui.setSettings(true, 'display') },
       { id: 'templates', icon: 'checklist', label: '템플릿에서 추가 / 템플릿 관리', run: () => useUI.setState({ templates: { view: 'list' } }) },
       { id: 'habits', icon: 'flame', label: '습관 기록 보기', hint: 'H', run: () => ui.setMode('habits') },
+      { id: 'voice', icon: 'mic', label: '말로 추가 (음성 입력)', run: () => useUI.setState({ quickAddOpen: true, quickAddVoice: true }) },
+      { id: 'report', icon: 'chart', label: '월간 리포트 보기', run: () => (ui.setMode('day'), ui.setDaySub('month')) },
+      { id: 'dday', icon: 'calendar', label: '기념일·D-day 추가', run: () => useUI.setState({ ddayEdit: 'new' }) },
+      { id: 'export', icon: 'download', label: '엑셀(CSV)로 내보내기 / 백업', run: () => useUI.setState({ exportOpen: true }) },
       { id: 'briefing', icon: 'sun', label: '아침 브리핑 보기', run: () => useUI.setState({ briefingOpen: true }) },
       { id: 'chat', icon: 'chat', label: 'AI 채팅 (웹 검색·질문)', hint: 'C', run: () => ui.setMode('chat') },
       { id: 'assistant', icon: 'sparkle', label: 'AI 일정 비서에게 부탁하기', hint: 'A', run: () => useUI.setState({ assistantOpen: true }) },
@@ -87,7 +91,7 @@ export function CommandPalette() {
 
     if (query) {
       const found = items
-        .filter((it) => it.type !== 'template')
+        .filter((it) => it.type !== 'template' && it.type !== 'dday')
         .filter((it) => it.title.toLowerCase().includes(lc) || it.tags.some((t) => t.toLowerCase().includes(lc.replace(/^#/, ''))) || it.note?.toLowerCase().includes(lc))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, 8)

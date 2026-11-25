@@ -8,6 +8,7 @@ import { loadSettings } from '../lib/importFiles'
 import { briefingForAI, buildBriefing, dueLabel, isEmpty, loadAINote, loadBriefing, saveAINote, summaryLine, timeLabel, type Briefing } from '../lib/briefing'
 import { Checkbox, Icon, toggleDone } from './ui'
 import { Markdown } from './Markdown'
+import { useDdays } from '../lib/dday'
 
 /** 아침 브리핑: 오늘 일정·할 일·마감을 한눈에 */
 export function BriefingDialog() {
@@ -24,6 +25,7 @@ export function BriefingDialog() {
       setSnap(buildBriefing(all))
     }
   }, [all, snap])
+  const soonDdays = useDdays().filter((d) => d.diff > 0 && d.diff <= 7)
   const live = (it: Item) => resolveItem(all, it.id) ?? it
   const pname = useMemo(() => (id?: string) => projects.find((p) => p.id === id)?.title, [projects])
 
@@ -128,6 +130,24 @@ export function BriefingDialog() {
                 <Group title="오늘 할 일" icon="checklist" items={[...b.dueToday, ...b.doing]} render={(it) => <Row key={it.id} it={live(it)} meta={it.doing ? '진행 중' : ''} sub={pname(it.projectId)} onOpen={go} check />} />
                 <Group title="오늘의 습관" icon="flame" items={b.habits} render={(it) => <Row key={it.id} it={live(it)} onOpen={go} check />} />
                 <Group title="곧 마감 (3일 안)" icon="flag" items={b.soon} render={(it) => <Row key={it.id} it={live(it)} meta={dueLabel(it)} sub={pname(it.projectId)} onOpen={go} check />} />
+                {soonDdays.length > 0 && (
+                  <section>
+                    <h3 className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-fg3">
+                      <Icon name="calendar" size={13} /> 다가오는 기념일 <span className="font-normal">{soonDdays.length}</span>
+                    </h3>
+                    <ul className="flex flex-col">
+                      {soonDdays.map((d) => (
+                        <li key={d.item.id}>
+                          <button onClick={() => useUI.setState({ ddayEdit: d.item.id })} className="flex w-full items-center gap-2 rounded-[6px] px-1 py-1 text-left hover:bg-hover">
+                            <span className="w-4 text-center">{d.item.icon ?? '🎉'}</span>
+                            <span className="min-w-0 flex-1 truncate text-[14px]">{d.item.title}</span>
+                            <span className="tnum text-[12px] font-semibold text-danger">{d.label}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
                 <Group title="이번 주 마감 프로젝트" icon="folder" items={b.projects} render={(it) => <Row key={it.id} it={it} meta={dueLabel({ ...it, type: 'task' })} onOpen={(id) => (useUI.getState().openProject(id), close())} />} />
               </>
             )}

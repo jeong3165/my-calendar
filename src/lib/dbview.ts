@@ -18,7 +18,7 @@ export const sortTime = (it: Item): string => it.start ?? (it.due ? `${it.due}T2
 /** 반복 항목은 '오늘 또는 다음 회차' 하나로 보여 준다 (끝난 반복은 마지막 회차) */
 export function toRows(items: Item[], now = new Date()): Item[] {
   const today = ymd(now)
-  return items.filter((it) => it.type !== 'project' && it.type !== 'template').map((it) => {
+  return items.filter((it) => it.type !== 'project' && it.type !== 'template' && it.type !== 'dday').map((it) => {
     if (!isRecurring(it)) return it
     const next = nextOccurrence(it, today)
     if (next) return instance(it, next)
