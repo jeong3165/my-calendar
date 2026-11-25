@@ -16,6 +16,9 @@ import { ChatView } from './components/ChatView'
 import { BriefingDialog } from './components/BriefingDialog'
 import { DdayDialog } from './components/Dday'
 import { ExportDialog } from './components/ExportDialog'
+import { TrashDialog } from './components/TrashDialog'
+import { TagView } from './components/TagView'
+import { WorklogDialog } from './components/WorklogDialog'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
@@ -33,7 +36,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen, briefingOpen, ddayEdit, exportOpen } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen, briefingOpen, ddayEdit, exportOpen, trashOpen, worklogOpen } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -70,8 +73,8 @@ export default function App() {
         if (e.key === 'Escape') ui.scopePrompt.resolve(null)
         return
       }
-      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates || ui.briefingOpen || ui.ddayEdit || ui.exportOpen) {
-        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null, briefingOpen: false, ddayEdit: null, exportOpen: false })
+      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates || ui.briefingOpen || ui.ddayEdit || ui.exportOpen || ui.trashOpen || ui.worklogOpen) {
+        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null, briefingOpen: false, ddayEdit: null, exportOpen: false, trashOpen: false, worklogOpen: false })
         return
       }
       if (e.key === 'Escape') {
@@ -100,6 +103,7 @@ export default function App() {
         KeyA: () => useUI.setState({ assistantOpen: true }),
         KeyH: () => ui.setMode('habits'),
         KeyC: () => ui.setMode('chat'),
+        KeyG: () => ui.setMode('tags'),
         KeyF: () => {
           if (useTimer.getState().phase !== 'idle') return toggleTimer()
           const sel = ui.selectedId
@@ -204,7 +208,7 @@ export default function App() {
   }
 
   // 휴대폰 뒤로가기 버튼으로 열린 창·상세 화면 닫기
-  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt || briefingOpen || !!ddayEdit || exportOpen)
+  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt || briefingOpen || !!ddayEdit || exportOpen || trashOpen || worklogOpen)
   const pushed = useRef(false)
   const skipPop = useRef(false)
   useEffect(() => {
@@ -229,6 +233,8 @@ export default function App() {
       else if (ui.briefingOpen) useUI.setState({ briefingOpen: false })
       else if (ui.ddayEdit) useUI.setState({ ddayEdit: null })
       else if (ui.exportOpen) useUI.setState({ exportOpen: false })
+      else if (ui.trashOpen) useUI.setState({ trashOpen: false })
+      else if (ui.worklogOpen) useUI.setState({ worklogOpen: false })
       else if (ui.importOpen) ui.closeImport()
       else if (ui.settingsOpen) ui.setSettings(false)
       else if (ui.paletteOpen) ui.setPalette(false)
@@ -258,7 +264,7 @@ export default function App() {
         <Toolbar />
         <div className="flex min-h-0 flex-1 border-t border-line">
           <div className="flex min-w-0 flex-1 flex-col" {...(isMobile && mode === 'calendar' ? swipe : {})}>
-            {mode === 'tasks' ? <MobileTasksView /> : mode === 'habits' ? <HabitsView /> : mode === 'chat' ? <ChatView /> : mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
+            {mode === 'tasks' ? <MobileTasksView /> : mode === 'habits' ? <HabitsView /> : mode === 'chat' ? <ChatView /> : mode === 'tags' ? <TagView /> : mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
           </div>
           {selectedId && <PeekPanel />}
         </div>
@@ -272,6 +278,8 @@ export default function App() {
       {briefingOpen && <BriefingDialog />}
       {ddayEdit && <DdayDialog />}
       {exportOpen && <ExportDialog />}
+      {trashOpen && <TrashDialog />}
+      {worklogOpen && <WorklogDialog />}
       {templates && <TemplatesDialog />}
       {settingsOpen && <SettingsDialog />}
       {scopePrompt && <ScopeDialog />}

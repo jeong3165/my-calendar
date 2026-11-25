@@ -7,6 +7,7 @@ import { useCalendarItems } from '../lib/subs'
 import { useProjects } from '../lib/projects'
 import { buildRows, downloadCsv, toCsv, type CsvOptions } from '../lib/csv'
 import { Icon } from './ui'
+import { useAllTags } from './TagInput'
 
 const now = new Date()
 const PRESETS: [string, string, string][] = [
@@ -19,10 +20,12 @@ const PRESETS: [string, string, string][] = [
 /** 내보내기: 엑셀(CSV) 또는 전체 백업(JSON) */
 export function ExportDialog() {
   const { showToast } = useUI()
-  const close = () => useUI.setState({ exportOpen: false })
+  const close = () => useUI.setState({ exportOpen: false, exportPreset: null })
+  const preset0 = useUI.getState().exportPreset
+  const tags = useAllTags()
   const all = useCalendarItems()
   const projects = useProjects()
-  const [o, setO] = useState<CsvOptions>({ from: PRESETS[1][1], to: PRESETS[1][2], events: true, tasks: true, undated: false, includeDone: true, projectId: '', subs: false })
+  const [o, setO] = useState<CsvOptions>({ from: preset0?.from ?? PRESETS[preset0?.tag ? 3 : 1][1], to: preset0?.to ?? PRESETS[preset0?.tag ? 3 : 1][2], events: true, tasks: true, undated: !!preset0?.tag, includeDone: true, projectId: '', subs: false, tag: preset0?.tag ?? '' })
   const set = (p: Partial<CsvOptions>) => setO({ ...o, ...p })
   const rows = useMemo(() => (o.from && o.to && o.from <= o.to ? buildRows(all, o) : []), [all, o])
   const preset = PRESETS.find(([, f, t]) => f === o.from && t === o.to)?.[0]
@@ -70,6 +73,17 @@ export function ExportDialog() {
             {check('subs', '구독 캘린더 일정')}
           </div>
           <label className="flex items-center gap-2">
+            태그
+            <select value={o.tag} onChange={(e) => set({ tag: e.target.value })} className="min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-2 py-1.5 outline-none focus:border-accent">
+              <option value="">전체</option>
+              {tags.map((t) => (
+                <option key={t.tag} value={t.tag}>
+                  #{t.tag} ({t.count})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
             프로젝트
             <select value={o.projectId} onChange={(e) => set({ projectId: e.target.value })} className="min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-2 py-1.5 outline-none focus:border-accent">
               <option value="">전체</option>
@@ -108,7 +122,7 @@ export function ExportDialog() {
           <button
             disabled={!rows.length}
             onClick={() => {
-              downloadCsv(toCsv(rows), `my-calendar_${o.from}_${o.to}.csv`)
+              downloadCsv(toCsv(rows), `my-calendar_${o.tag ? o.tag + '_' : ''}${o.from}_${o.to}.csv`)
               showToast(`${rows.length}개 항목을 CSV로 저장했어요. 엑셀에서 바로 열려요.`)
               close()
             }}

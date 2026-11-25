@@ -81,11 +81,15 @@ export async function applyTemplate(tpl: Item, anchor: string, opts: { projectTi
   const created: string[] = []
   let projectId: string | undefined
   if (data.kind === 'project') {
-    const p = await createItem({ type: 'project', title: opts.projectTitle || tpl.title, icon: data.project?.icon ?? tpl.icon, color: data.project?.color ?? 'blue', note: data.project?.note, due: anchor })
+    const p = await createItem({ type: 'project', title: opts.projectTitle || tpl.title, icon: data.project?.icon ?? tpl.icon, color: data.project?.color ?? 'blue', note: data.project?.note, due: anchor, tags: tpl.tags })
     projectId = p.id
     created.push(p.id)
   }
-  for (const t of tasks) created.push((await createItem({ ...expandTask(t, anchor), projectId })).id)
+  // 템플릿에 붙인 태그는 만들어지는 모든 할 일에도 붙임
+  for (const t of tasks) {
+    const x = expandTask(t, anchor)
+    created.push((await createItem({ ...x, tags: [...new Set([...(x.tags ?? []), ...tpl.tags])], projectId })).id)
+  }
   return { created, projectId }
 }
 

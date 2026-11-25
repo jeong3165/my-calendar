@@ -54,6 +54,8 @@ export function Toolbar() {
           ? { main: '습관', sub: '반복 할 일의 연속 기록' }
           : mode === 'chat'
           ? { main: 'AI 채팅', sub: '웹 검색 · 내 일정 확인·추가' }
+          : mode === 'tags'
+          ? { main: '태그', sub: '태그별로 모아 보기' }
           : mode === 'project'
           ? { main: '프로젝트', sub: '할 일을 묶어서 관리' }
           : mode === 'board'
@@ -116,7 +118,7 @@ export function Toolbar() {
 
       {/* 노션식 보기 탭 + 보기별 도구 (휴대폰에서 캘린더는 위 한 줄에 다 들어감) */}
       {isMobile && <TimerButton />}
-      {!(isMobile && ['calendar', 'project', 'habits', 'tasks', 'chat'].includes(mode)) && (
+      {!(isMobile && ['calendar', 'project', 'habits', 'tasks', 'chat', 'tags'].includes(mode)) && (
       <div className={isMobile ? 'flex flex-wrap items-center gap-1.5 [&_button]:text-[12px]' : 'flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line pb-1.5'}>
         <div className={`gap-0.5 ${isMobile ? 'hidden' : 'flex'}`} role="tablist" aria-label="보기">
           {MODES.map(({ m, label, icon, key }) => (
@@ -137,7 +139,7 @@ export function Toolbar() {
         <div className={isMobile ? 'flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto' : 'ml-auto flex flex-wrap items-center gap-1.5'}>
           {mode === 'calendar' ? (
             <CalNav />
-          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' || mode === 'chat' ? null : mode === 'day' ? (
+          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' || mode === 'chat' || mode === 'tags' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
                 <>
@@ -167,6 +169,11 @@ export function Toolbar() {
                   </button>
                 ))}
               </div>
+              {daySub === 'review' && (
+                <button onClick={() => useUI.setState({ worklogOpen: true })} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover" title="오늘 한 일을 업무일지로 정리해 복사">
+                  📝 업무일지
+                </button>
+              )}
               {daySub === 'plan' && (
                 <button onClick={() => useUI.setState({ briefingOpen: true })} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover" title="오늘 일정·할 일 요약 (아침 브리핑)">
                   ☀️ 브리핑

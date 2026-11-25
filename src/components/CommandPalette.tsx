@@ -74,6 +74,9 @@ export function CommandPalette() {
             ui.showToast(`더미 데이터 ${n}개를 지웠어요.`)
           } }]
         : []),
+      { id: 'trash', icon: 'trash', label: '휴지통 열기 (지운 항목 되살리기)', run: () => useUI.setState({ trashOpen: true }) },
+      { id: 'tags', icon: 'hash', label: '태그별로 모아 보기', hint: 'G', run: () => ui.setMode('tags') },
+      { id: 'worklog', icon: 'checklist', label: '오늘 업무일지 쓰기', run: () => useUI.setState({ worklogOpen: true }) },
       { id: 'voice', icon: 'mic', label: '말로 추가 (음성 입력)', run: () => useUI.setState({ quickAddOpen: true, quickAddVoice: true }) },
       { id: 'report', icon: 'chart', label: '월간 리포트 보기', run: () => (ui.setMode('day'), ui.setDaySub('month')) },
       { id: 'dday', icon: 'calendar', label: '기념일·D-day 추가', run: () => useUI.setState({ ddayEdit: 'new' }) },

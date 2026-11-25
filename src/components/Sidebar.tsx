@@ -1,10 +1,12 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { importJSON, useItems } from '../db'
 import { DdaySection } from './Dday'
+import { useAllTags } from './TagInput'
+import { useTrash } from '../db'
 import { LAYOUT_DEFAULT, useUI } from '../store'
 import { Resizer } from './Resizer'
 import type { Section } from '../types'
-import { allTags, colorVars, sectionTasks, tagColor } from '../lib/items'
+import { colorVars, sectionTasks, tagColor } from '../lib/items'
 import { MiniCalendar } from './MiniCalendar'
 import { TaskList, sectionTitle } from './TaskList'
 import { Icon, Kbd, MOD, type IconName } from './ui'
@@ -28,7 +30,7 @@ export function Sidebar() {
   const { section, setSection, toggleSidebar, setPalette, isMobile, sidebarOpen, setSidebar, setSettings, sidebarW, setLayout, screen } = useUI()
   const overlay = screen !== 'desktop' // 좁은 화면에서는 캘린더 위에 겹쳐서
   const items = useItems()
-  const tags = useMemo(() => allTags(items), [items])
+  const tags = useAllTags()
   const fileRef = useRef<HTMLInputElement>(null)
 
   if (!sidebarOpen) return null
@@ -77,11 +79,17 @@ export function Sidebar() {
               </button>
             )
           })}
+          <TrashNav />
         </nav>
 
         {tags.length > 0 && (
           <div className="px-1.5 pt-3">
-            <div className="px-2 pb-1 text-[12px] font-medium text-fg3">태그</div>
+            <div className="flex items-center px-2 pb-1">
+              <span className="flex-1 text-[12px] font-medium text-fg3">태그</span>
+              <button onClick={() => useUI.getState().setMode('tags')} className="text-[12px] text-fg3 hover:text-fg2" title="태그별로 모아 보기 (G)">
+                모두 보기 →
+              </button>
+            </div>
             <div className="flex flex-wrap gap-1 px-2">
               {tags.map(({ tag, count: c }) => {
                 const s: Section = { kind: 'tag', tag }
@@ -89,7 +97,12 @@ export function Sidebar() {
                 return (
                   <button
                     key={tag}
-                    onClick={() => setSection(active ? { kind: 'today' } : s)}
+                    onClick={() => {
+                      // 태그를 누르면 태그 보기 화면 (일정·할 일·프로젝트·기념일·하루 기록 모두)
+                      useUI.setState({ tagView: tag })
+                      useUI.getState().setMode('tags')
+                      if (useUI.getState().screen !== 'desktop') setSidebar(false)
+                    }}
                     className={`rounded-[4px] px-1.5 py-px text-[12px] ${active ? 'ring-2 ring-accent' : 'hover:brightness-95'}`}
                     style={colorVars(tagColor(tag))}
                   >
@@ -321,5 +334,16 @@ function TemplatesSection() {
         ))
       )}
     </div>
+  )
+}
+
+function TrashNav() {
+  const n = useTrash().length
+  return (
+    <button onClick={() => useUI.setState({ trashOpen: true })} className="flex w-full items-center gap-2 rounded-[6px] px-2 py-[5px] text-[14px] text-fg2 hover:bg-hover">
+      <Icon name="trash" size={16} />
+      <span className="flex-1 text-left">휴지통</span>
+      {n > 0 && <span className="tnum text-[12px] text-fg3">{n}</span>}
+    </button>
   )
 }

@@ -10,9 +10,11 @@ export type SyncFile = {
   deleted: Record<string, string> // id → 삭제 시각
   journal?: Journal[] // 하루 기록 (날짜별, 나중에 고친 쪽이 이김)
   sessions?: FocusSession[] // 집중 타이머 기록
+  trash?: Record<string, Item | null> // 휴지통 사본 (30일). null = 영구 삭제함
 }
 
 const KEEP_TOMBSTONE_DAYS = 180
+const KEEP_TRASH_DAYS = 30
 
 /**
  * 두 쪽 데이터를 합친다.
@@ -24,7 +26,7 @@ export function mergeData(
   local: { items: Item[]; tombstones: Tombstone[]; journal?: Journal[]; sessions?: FocusSession[] },
   remote: SyncFile | null,
   now = new Date(),
-): { items: Item[]; deleted: Record<string, string>; journal: Journal[]; sessions: FocusSession[] } {
+): { items: Item[]; deleted: Record<string, string>; journal: Journal[]; sessions: FocusSession[]; trash: Record<string, Item | null> } {
   const deleted = new Map<string, string>()
   const addTomb = (id: string, at: string) => {
     const cur = deleted.get(id)
@@ -51,6 +53,21 @@ export function mergeData(
   const cutoff = new Date(now.getTime() - KEEP_TOMBSTONE_DAYS * 86400000).toISOString()
   for (const [id, at] of deleted) if (at < cutoff) deleted.delete(id)
 
+  // 휴지통 사본: 영구 삭제(null)가 이기고, 아직 지워진 상태인 30일 안의 것만 남김
+  const trashIn = new Map<string, Item | null>()
+  const putTrash = (id: string, v: Item | null | undefined) => {
+    if (v === undefined) return
+    if (v === null || !trashIn.has(id)) trashIn.set(id, v)
+  }
+  for (const t of local.tombstones) putTrash(t.id, t.item)
+  for (const [id, v] of Object.entries(remote?.trash ?? {})) putTrash(id, v)
+  const trashCut = new Date(now.getTime() - KEEP_TRASH_DAYS * 86400000).toISOString()
+  const trash: Record<string, Item | null> = {}
+  for (const [id, v] of [...trashIn.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    const at = deleted.get(id)
+    if (at && at >= trashCut) trash[id] = v
+  }
+
   const journal = new Map<string, Journal>()
   for (const j of [...(remote?.journal ?? []), ...(local.journal ?? [])]) {
     const cur = journal.get(j.date)
@@ -73,6 +90,7 @@ export function mergeData(
     journal: [...journal.values()].sort((a, b) => a.date.localeCompare(b.date)),
     items: [...items.values()].sort((a, b) => a.id.localeCompare(b.id)),
     deleted: Object.fromEntries([...deleted.entries()].sort(([a], [b]) => a.localeCompare(b))),
+    trash,
   }
 }
 
@@ -82,7 +100,11 @@ export function signature(
   deleted: Record<string, string> | Tombstone[],
   journal: Pick<Journal, 'date' | 'updatedAt'>[] = [],
   sessions: Pick<FocusSession, 'id' | 'updatedAt'>[] = [],
+  trash: Record<string, Item | null> | Tombstone[] = [],
 ): string {
+  const t = (Array.isArray(trash) ? trash.filter((x) => x.item !== undefined).map((x) => `${x.id}${x.item ? '' : '!'}`) : Object.entries(trash).map(([id, v]) => `${id}${v ? '' : '!'}`))
+    .sort()
+    .join(',')
   const i = items
     .map((x) => `${x.id}@${x.updatedAt}`)
     .sort()
@@ -98,5 +120,5 @@ export function signature(
     .map((x) => `${x.id}@${x.updatedAt}`)
     .sort()
     .join(',')
-  return `${i}|${d}|${j}|${f}`
+  return `${i}|${d}|${j}|${f}|${t}`
 }

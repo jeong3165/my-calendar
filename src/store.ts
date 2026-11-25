@@ -51,6 +51,12 @@ type UI = {
   ddayEdit: string | null
   quickAddVoice: boolean
   exportOpen: boolean
+  trashOpen: boolean
+  /** 태그 보기에서 고른 태그 */
+  tagView: string | null
+  /** 내보내기 창을 열 때 미리 고를 태그·기간 */
+  exportPreset: { tag?: string; from?: string; to?: string } | null
+  worklogOpen: boolean
   quickAddOpen: boolean
   templates: TemplatesView | null
   // 화면 크기 조절 (이 브라우저에 기억)
@@ -112,7 +118,7 @@ type UI = {
 async function discardIfEmptyDraft(draftId: string | null) {
   if (!draftId) return
   const it = await db.items.get(draftId)
-  if (it && !it.title.trim() && !it.note?.trim()) await deleteItem(draftId)
+  if (it && !it.title.trim() && !it.note?.trim()) await deleteItem(draftId, { trash: false })
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined
@@ -147,6 +153,10 @@ export const useUI = create<UI>((set, get) => ({
   ddayEdit: null,
   quickAddVoice: false,
   exportOpen: false,
+  trashOpen: false,
+  tagView: null,
+  exportPreset: null,
+  worklogOpen: false,
   quickAddOpen: false,
   templates: null,
   ...LAYOUT_DEFAULT,

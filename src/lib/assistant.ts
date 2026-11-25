@@ -230,7 +230,7 @@ export async function applyProposals(list: Proposal[]): Promise<Undo> {
 }
 
 export async function undoApply(u: Undo) {
-  for (const id of u.created) await deleteItem(id)
+  for (const id of u.created) await deleteItem(id, { trash: false })
   const now = new Date().toISOString()
   // 원래 값으로 되돌리되, 동기화에서 '최신'으로 보이도록 수정 시각은 지금으로
   if (u.before.length) await db.items.bulkPut(u.before.map((x) => ({ ...x, updatedAt: now })))

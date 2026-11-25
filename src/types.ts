@@ -84,7 +84,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export type View = 'month' | 'week' | 'day'
-export type Mode = 'calendar' | 'tasks' | 'table' | 'board' | 'day' | 'habits' | 'chat' | 'project'
+export type Mode = 'calendar' | 'tasks' | 'table' | 'board' | 'day' | 'habits' | 'chat' | 'project' | 'tags'
 export type Status = 'todo' | 'doing' | 'done'
 export const STATUS_LABEL: Record<Status, string> = { todo: '할 일', doing: '진행 중', done: '완료' }
 
@@ -105,6 +105,7 @@ export type Journal = {
   note?: string // 한 줄 회고
   good?: string // 잘한 점
   better?: string // 아쉬운 점
+  tags?: string[] // 이날의 태그 (예: 출장, 교육)
   updatedAt: string
 }
 

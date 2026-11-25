@@ -5,7 +5,12 @@ import { ymd } from './lib/date'
 import { loadNotify } from './lib/notify'
 
 /** 삭제 기록: 다른 기기와 동기화할 때 지운 항목이 되살아나지 않게 한다 */
-export type Tombstone = { id: string; deletedAt: string }
+export type Tombstone = {
+  id: string
+  deletedAt: string
+  /** 휴지통 사본 (30일 보관). null = 휴지통에서 영구 삭제함, 없음 = 휴지통에 안 넣은 삭제 */
+  item?: Item | null
+}
 
 export const db = new Dexie('my-notion-calendar') as Dexie & {
   items: EntityTable<Item, 'id'>
@@ -121,11 +126,43 @@ export function saveJournal(date: string, patch: Partial<Journal>) {
   })
 }
 
-export function deleteItem(id: string) {
+/** 지우기 — 기본은 휴지통으로 (빈 초안·되돌리기·체험 데이터는 trash: false) */
+export function deleteItem(id: string, opts: { trash?: boolean } = {}) {
   return db.transaction('rw', db.items, db.tombstones, async () => {
+    const it = await db.items.get(id)
     await db.items.delete(id)
-    await db.tombstones.put({ id, deletedAt: new Date().toISOString() })
+    await db.tombstones.put({ id, deletedAt: new Date().toISOString(), ...(opts.trash !== false && it ? { item: it } : {}) })
   })
+}
+
+/* ───────── 휴지통 ───────── */
+export const TRASH_DAYS = 30
+export type TrashEntry = { id: string; deletedAt: string; item: Item }
+const EMPTY_T: TrashEntry[] = []
+export function useTrash(): TrashEntry[] {
+  return (
+    useLiveQuery(async () => {
+      const cutoff = new Date(Date.now() - TRASH_DAYS * 86400000).toISOString()
+      return (await db.tombstones.toArray())
+        .filter((t): t is TrashEntry => !!t.item && t.deletedAt >= cutoff)
+        .sort((a, b) => b.deletedAt.localeCompare(a.deletedAt))
+    }, []) ?? EMPTY_T
+  )
+}
+/** 되살리기: 지금 고친 것으로 저장 → 동기화하면 다른 기기에서도 살아남 */
+export async function restoreItem(id: string) {
+  await db.transaction('rw', db.items, db.tombstones, async () => {
+    const t = await db.tombstones.get(id)
+    if (!t?.item) return
+    await db.items.put({ ...t.item, updatedAt: new Date().toISOString() })
+    await db.tombstones.delete(id)
+  })
+}
+/** 휴지통에서 영구 삭제 (삭제 기록은 남겨 다른 기기에서 되살아나지 않게) */
+export async function purgeTrash(ids?: string[]) {
+  const all = await db.tombstones.toArray()
+  const target = all.filter((t) => t.item && (!ids || ids.includes(t.id)))
+  await db.tombstones.bulkPut(target.map((t) => ({ ...t, item: null })))
 }
 
 export function useItems(): Item[] {
@@ -204,7 +241,7 @@ export function useItemSessions(itemId: string): FocusSession[] {
 export async function deleteDemoData(): Promise<number> {
   const items = (await db.items.toArray()).filter((x) => x.id.startsWith('demo-'))
   const sessions = (await db.sessions.toArray()).filter((x) => x.id.startsWith('demo-'))
-  for (const it of items) await deleteItem(it.id)
+  for (const it of items) await deleteItem(it.id, { trash: false })
   for (const s of sessions) await deleteSession(s.id)
   return items.length
 }

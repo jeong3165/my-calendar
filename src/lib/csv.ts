@@ -16,6 +16,7 @@ export type CsvOptions = {
   includeDone: boolean
   projectId: string // '' = 전체, 'none' = 프로젝트 없음
   subs: boolean // 구독 캘린더 일정도
+  tag?: string // 이 태그가 붙은 것만 ('' = 전체)
 }
 
 const HEAD = ['유형', '제목', '날짜', '요일', '시작', '종료', '시간(분)', '종일', '마감일', '상태', '우선순위', '프로젝트', '태그', '메모', '완료한 때', '캘린더', '반복']
@@ -31,7 +32,7 @@ export function buildRows(all: Item[], o: CsvOptions): string[][] {
   const f = parseYmd(o.from)
   const t = addDays(parseYmd(o.to), 1)
   const pname = new Map(all.filter((x) => x.type === 'project').map((p) => [p.id, p.title]))
-  const okProject = (it: Item) => !o.projectId || (o.projectId === 'none' ? !it.projectId : it.projectId === o.projectId)
+  const okProject = (it: Item) => (!o.projectId || (o.projectId === 'none' ? !it.projectId : it.projectId === o.projectId)) && (!o.tag || it.tags.includes(o.tag))
   const rows: { key: string; row: string[] }[] = []
 
   for (const it of expandItems(all.filter((x) => x.type === 'event' || x.type === 'task'), f, t)) {

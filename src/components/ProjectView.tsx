@@ -12,6 +12,7 @@ import { statusOf } from '../lib/dbview'
 import { fmtMinutes } from '../lib/review'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 import { fmtWhen, isOverdue } from './viewUtil'
+import { TagInput } from './TagInput'
 
 /** 노션 페이지 같은 프로젝트 화면 */
 export function ProjectView() {
@@ -99,6 +100,9 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
             {dLeft !== null && !p.done && (
               <span className={`tnum text-[13px] ${dLeft < 0 ? 'text-danger' : dLeft <= 7 ? 'text-[var(--c-orange-bar)]' : 'text-fg2'}`}>{dLeft === 0 ? 'D-day' : dLeft > 0 ? `D-${dLeft}` : `${-dLeft}일 지남`}</span>
             )}
+          </Row>
+          <Row icon="hash" label="태그">
+            <TagInput tags={p.tags} onChange={(tags) => void set({ tags })} placeholder="비어 있음" className="-ml-2 min-w-[200px]" />
           </Row>
           <Row icon="palette" label="색상">
             {COLORS.map((c) => (
@@ -188,7 +192,7 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
             if (!confirm(`'${p.title || '이름 없는 프로젝트'}' 프로젝트를 지울까요?\n안에 있던 할 일과 일정은 지워지지 않고 남아요.`)) return
             await deleteProject(p.id)
             setMode('calendar')
-            showToast('프로젝트를 지웠어요. 할 일은 그대로 남아 있어요.')
+            showToast('프로젝트를 휴지통으로 옮겼어요. 할 일은 그대로 남아 있어요.')
           }}
           className="flex items-center gap-1 rounded-[6px] px-2 py-1 text-[13px] text-fg3 hover:bg-hover hover:text-danger"
         >
@@ -199,7 +203,7 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
   )
 }
 
-function Row({ icon, label, children }: { icon: 'status' | 'calendar' | 'palette'; label: string; children: React.ReactNode }) {
+function Row({ icon, label, children }: { icon: 'status' | 'calendar' | 'palette' | 'hash'; label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-[32px] items-center">
       <span className="flex w-[110px] shrink-0 items-center gap-1.5 text-fg2">

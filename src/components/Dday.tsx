@@ -6,6 +6,7 @@ import { ymd } from '../lib/date'
 import { DDAY_ICONS, ddayInfo, useDdays } from '../lib/dday'
 import { lunarSupported } from '../lib/holidays'
 import { Icon } from './ui'
+import { TagInput } from './TagInput'
 
 /** 사이드바: 다가오는 기념일·D-day */
 export function DdaySection() {
@@ -57,6 +58,7 @@ export function DdayDialog() {
   const [noYear, setNoYear] = useState(false)
   const [icon, setIcon] = useState<string>('🎂')
   const [color, setColor] = useState<NotionColor>('pink')
+  const [tags, setTags] = useState<string[]>([])
   const [loaded, setLoaded] = useState(isNew)
 
   useEffect(() => {
@@ -70,6 +72,7 @@ export function DdayDialog() {
       setNoYear(!!it.anniv.noYear)
       setIcon(it.icon ?? '🎉')
       setColor(it.color)
+      setTags(it.tags)
       setLoaded(true)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,8 +83,8 @@ export function DdayDialog() {
 
   async function save() {
     if (!title.trim() || !date) return
-    if (isNew) await createItem({ type: 'dday', title: title.trim(), anniv, icon, color })
-    else await updateItem(id, { title: title.trim(), anniv, icon, color })
+    if (isNew) await createItem({ type: 'dday', title: title.trim(), anniv, icon, color, tags })
+    else await updateItem(id, { title: title.trim(), anniv, icon, color, tags })
     showToast(isNew ? '기념일을 추가했어요.' : '기념일을 고쳤어요.')
     close()
   }
@@ -151,6 +154,10 @@ export function DdayDialog() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          <span className="w-14 shrink-0 text-[13px] text-fg2">태그</span>
+          <TagInput tags={tags} onChange={setTags} placeholder="예: 가족, 시험" className="-ml-2 min-w-0 flex-1" />
+        </div>
+        <div className="flex items-center gap-1.5">
           <span className="w-14 shrink-0 text-[13px] text-fg2">색</span>
           {COLORS.map((c) => (
             <button key={c} type="button" onClick={() => setColor(c)} className={`h-5 w-5 rounded-full ${color === c ? 'ring-2 ring-fg ring-offset-2 ring-offset-popover' : ''}`} style={{ background: `var(--c-${c}-bar)` }} aria-label={c} />
@@ -175,7 +182,7 @@ export function DdayDialog() {
               onClick={async () => {
                 if (!confirm('이 기념일을 지울까요?')) return
                 await deleteItem(id)
-                showToast('기념일을 지웠어요.')
+                showToast('기념일을 휴지통으로 옮겼어요.')
                 close()
               }}
               className="rounded-[6px] px-2.5 py-1.5 text-[13px] text-fg2 hover:bg-hover hover:text-danger"

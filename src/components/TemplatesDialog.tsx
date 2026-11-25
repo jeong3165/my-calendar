@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { addDays } from 'date-fns'
 import { deleteItem, updateItem } from '../db'
 import { useUI } from '../store'
+import { TagInput } from './TagInput'
 import type { Item, TemplateData } from '../types'
 import { parseYmd, relDay, ymd } from '../lib/date'
 import { applyTemplate, expandTask, parseTemplate, saveTemplate, STARTERS, useTemplates } from '../lib/templates'
@@ -170,6 +171,7 @@ function EditView({ tpl, seed, onSaved, onDeleted }: { tpl?: Item; seed?: { name
   const init = tpl ? { name: tpl.title, icon: tpl.icon ?? '📋', data: tpl.template! } : (seed ?? { name: '', icon: '📋', data: { kind: 'list' as const, text: '' } })
   const [name, setName] = useState(init.name)
   const [icon, setIcon] = useState(init.icon)
+  const [tags, setTags] = useState<string[]>(tpl?.tags ?? [])
   const [kind, setKind] = useState(init.data.kind)
   const [text, setText] = useState(init.data.text)
   const parsed = parseTemplate(text)
@@ -177,9 +179,13 @@ function EditView({ tpl, seed, onSaved, onDeleted }: { tpl?: Item; seed?: { name
   async function save() {
     const data: TemplateData = { ...init.data, kind, text }
     if (tpl) {
-      await updateItem(tpl.id, { title: name.trim(), icon, template: data })
+      await updateItem(tpl.id, { title: name.trim(), icon, template: data, tags })
       onSaved(tpl.id)
-    } else onSaved((await saveTemplate(name.trim(), data, icon)).id)
+    } else {
+      const created = await saveTemplate(name.trim(), data, icon)
+      if (tags.length) await updateItem(created.id, { tags })
+      onSaved(created.id)
+    }
   }
 
   return (
@@ -192,6 +198,10 @@ function EditView({ tpl, seed, onSaved, onDeleted }: { tpl?: Item; seed?: { name
             ))}
           </select>
           <input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!name} placeholder="템플릿 이름 (예: 출근 루틴)" className="min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 py-1.5 text-[15px] font-semibold outline-none focus:border-accent" />
+        </div>
+        <div className="flex items-center gap-2 text-[13px]">
+          <span className="shrink-0 text-fg2">태그</span>
+          <TagInput tags={tags} onChange={setTags} placeholder="적용할 때 모든 할 일에 붙여요 (예: 출장)" className="min-w-0 flex-1" />
         </div>
         <div className="flex gap-1 rounded-[6px] bg-hover p-0.5 text-[13px]">
           {(

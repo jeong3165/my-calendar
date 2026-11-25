@@ -201,14 +201,14 @@ async function syncOnce() {
       const mergedIds = new Set(merged.items.map((i) => i.id))
       const toPut = merged.items.filter((m) => localById.get(m.id)?.updatedAt !== m.updatedAt)
       const toDelete = items.filter((i) => !mergedIds.has(i.id)).map((i) => i.id)
-      const tombs = Object.entries(merged.deleted).map(([id, deletedAt]) => ({ id, deletedAt }))
+      const tombs = Object.entries(merged.deleted).map(([id, deletedAt]) => ({ id, deletedAt, ...(id in merged.trash ? { item: merged.trash[id] } : {}) }))
       const localJ = new Map(journal.map((j) => [j.date, j.updatedAt]))
       const jPut = merged.journal.filter((j) => localJ.get(j.date) !== j.updatedAt)
       const localS = new Map(sessions.map((x) => [x.id, x.updatedAt]))
       const sKeep = new Set(merged.sessions.map((x) => x.id))
       const sPut = merged.sessions.filter((x) => localS.get(x.id) !== x.updatedAt)
       const sDel = sessions.filter((x) => !sKeep.has(x.id)).map((x) => x.id)
-      if (toPut.length || toDelete.length || jPut.length || sPut.length || sDel.length || signature([], tombs) !== signature([], tombstones)) {
+      if (toPut.length || toDelete.length || jPut.length || sPut.length || sDel.length || signature([], tombs, [], [], tombs) !== signature([], tombstones, [], [], tombstones)) {
         await db.transaction('rw', [db.items, db.tombstones, db.journal, db.sessions], async () => {
           if (jPut.length) await db.journal.bulkPut(jPut)
           if (sPut.length) await db.sessions.bulkPut(sPut)
@@ -221,8 +221,8 @@ async function syncOnce() {
       }
 
       // 2) 저장소에 반영 (바뀐 게 있을 때만 커밋)
-      const sig = signature(merged.items, merged.deleted, merged.journal, merged.sessions)
-      const remoteSig = remote ? signature(remote.data.items, remote.data.deleted, remote.data.journal ?? [], remote.data.sessions ?? []) : null
+      const sig = signature(merged.items, merged.deleted, merged.journal, merged.sessions, merged.trash)
+      const remoteSig = remote ? signature(remote.data.items, remote.data.deleted, remote.data.journal ?? [], remote.data.sessions ?? [], remote.data.trash ?? {}) : null
       if (sig !== remoteSig) {
         try {
           await push(s, { app: 'my-notion-calendar', version: 1, updatedAt: new Date().toISOString(), ...merged }, remote?.sha ?? null)
@@ -243,5 +243,5 @@ async function syncOnce() {
 /** 현재 로컬 데이터 지문 (바뀌었는지 확인용) */
 export async function localSignature() {
   const [items, tombstones, journal, sessions] = await Promise.all([db.items.toArray(), db.tombstones.toArray(), db.journal.toArray(), db.sessions.toArray()])
-  return signature(items, tombstones, journal, sessions)
+  return signature(items, tombstones, journal, sessions, tombstones)
 }

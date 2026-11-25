@@ -10,7 +10,8 @@ import type { Item, Priority } from '../types'
 import { COLORS, COLOR_LABEL, PRIORITY_LABEL, STATUS_LABEL, type Status } from '../types'
 import { statusOf } from '../lib/dbview'
 import { parseYmd, toLocalInput, ymd } from '../lib/date'
-import { allTags, colorVars, isTimed, tagColor } from '../lib/items'
+import { isTimed } from '../lib/items'
+import { TagInput } from './TagInput'
 import { Checkbox, FocusButton, Icon, type IconName } from './ui'
 import { baseDate, changeOccurrence, deleteSmart, isRecurring, repeatLabel, resolveItem, toggleOccurrenceDone, touchesTime, updateSmart } from '../lib/recur'
 import { ProjectPicker, RemindEditor, RepeatEditor, SubtaskEditor } from './PeekExtras'
@@ -46,8 +47,11 @@ export function PeekPanel() {
         {!item.readonly && <FocusButton item={item} label />}
         {!item.readonly && <button
           onClick={async () => {
-            if (!item.occ && !confirm(`'${item.title || '제목 없음'}'을(를) 삭제할까요?${isRecurring(item) ? '\n반복 일정 전체가 삭제돼요.' : ''}`)) return
-            if (await deleteSmart(item)) close()
+            if (!item.occ && !confirm(`'${item.title || '제목 없음'}'을(를) 삭제할까요?${isRecurring(item) ? '\n반복 일정 전체가 삭제돼요.' : ''}\n(휴지통에서 30일 안에 되살릴 수 있어요)`)) return
+            if (await deleteSmart(item)) {
+              close()
+              if (!item.occ) useUI.getState().showToast('휴지통으로 옮겼어요. 사이드바 휴지통에서 되살릴 수 있어요.')
+            }
           }}
           className="flex h-7 items-center gap-1 rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover hover:text-danger"
         >
@@ -214,7 +218,7 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
         )}
 
         <Prop icon="hash" label="태그">
-          <TagEditor item={item} suggestions={allTags(allItems).map((t) => t.tag)} set={set} />
+          <TagInput tags={item.tags} onChange={(tags) => set({ tags })} placeholder="비어 있음" className="rounded-[4px]" />
         </Prop>
 
         <Prop icon="palette" label="색상">
@@ -413,47 +417,6 @@ function TaskDates({ item, set }: { item: Item; set: (p: Partial<Item>) => void 
         )}
       </Prop>
     </>
-  )
-}
-
-function TagEditor({ item, suggestions, set }: { item: Item; suggestions: string[]; set: (p: Partial<Item>) => void }) {
-  const [v, setV] = useState('')
-  const add = () => {
-    const t = v.trim().replace(/^#/, '')
-    if (t && !item.tags.includes(t)) set({ tags: [...item.tags, t] })
-    setV('')
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-1 rounded-[4px] px-2 py-[3px] focus-within:bg-hover hover:bg-hover">
-      {item.tags.map((t) => (
-        <span key={t} className="flex items-center gap-0.5 rounded-[3px] py-px pr-0.5 pl-1.5 text-[13px]" style={colorVars(tagColor(t))}>
-          {t}
-          <button onClick={() => set({ tags: item.tags.filter((x) => x !== t) })} className="grid h-4 w-4 place-items-center rounded opacity-60 hover:opacity-100" aria-label={`${t} 태그 빼기`}>
-            <Icon name="x" size={11} />
-          </button>
-        </span>
-      ))}
-      <input
-        list="tag-suggestions"
-        value={v}
-        onChange={(e) => setV(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing) return
-          if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault()
-            add()
-          } else if (e.key === 'Backspace' && !v && item.tags.length) set({ tags: item.tags.slice(0, -1) })
-        }}
-        onBlur={add}
-        placeholder={item.tags.length ? '' : '비어 있음'}
-        className="min-w-[80px] flex-1 bg-transparent py-0.5 text-[14px] outline-none"
-      />
-      <datalist id="tag-suggestions">
-        {suggestions.filter((s) => !item.tags.includes(s)).map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-    </div>
   )
 }
 

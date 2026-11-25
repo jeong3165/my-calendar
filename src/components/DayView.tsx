@@ -12,6 +12,7 @@ import { colorVars, tagColor, taskKey } from '../lib/items'
 import { blockMinutes, dayData, fmtMinutes, inboxTasks, moveToDate, moveToInbox, MOOD_LABEL, MOODS, overdueTasks } from '../lib/review'
 import { TimeGrid } from './TimeGrid'
 import { ReportView } from './ReportView'
+import { TagInput } from './TagInput'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 import { fmtWhen } from './viewUtil'
 
@@ -333,6 +334,10 @@ function Reflection({ date, journal, tomorrow }: { date: string; journal?: Journ
         {journal?.mood && <span className="text-[12px] text-fg2">{MOOD_LABEL[journal.mood - 1]}</span>}
       </div>
       {field(note, setNote, 'note', '한 줄 회고: 오늘은 어땠나요?', 2)}
+      <div className="flex items-center gap-2 text-[13px]">
+        <span className="shrink-0 text-fg2">이날의 태그</span>
+        <TagInput tags={journal?.tags ?? []} onChange={(tags) => void saveJournal(date, { tags: tags.length ? tags : undefined })} placeholder="예: 출장, 교육, 야근" className="min-w-0 flex-1" />
+      </div>
       <div className="grid gap-3 md:grid-cols-2">
         {field(good, setGood, 'good', '👍 잘한 점')}
         {field(better, setBetter, 'better', '🔧 아쉬운 점 / 내일 바꿀 점')}
