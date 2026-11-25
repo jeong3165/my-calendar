@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { addDays, addMonths, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
 import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
-import { useHoliday } from '../lib/holidays'
+import { TONE_TEXT, dayTone, useHoliday, weekdayTone } from '../lib/holidays'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
 import { expandItems } from '../lib/recur'
@@ -49,8 +49,8 @@ export function MiniCalendar() {
         </div>
       </div>
       <div className="grid grid-cols-7 text-center">
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="py-0.5 text-[11px] text-fg3">
+        {WEEKDAYS.map((w, i) => (
+          <div key={w} className={`py-0.5 text-[11px] ${weekdayTone(i) ? TONE_TEXT[weekdayTone(i)!] : 'text-fg3'}`}>
             {w}
           </div>
         ))}
@@ -58,6 +58,7 @@ export function MiniCalendar() {
           const today = isToday(d)
           const sel = inRange(d)
           const hol = holiday(d)
+          const tone = dayTone(d, hol)
           return (
             <button
               key={d.toISOString()}
@@ -65,7 +66,7 @@ export function MiniCalendar() {
               title={hol?.names.join(', ')}
               className={`tnum relative mx-auto my-px grid h-7 w-7 place-items-center rounded-full text-[12px] ${
                 today ? 'bg-accent font-semibold text-white' : sel ? 'bg-active font-medium' : 'hover:bg-hover'
-              } ${!today && hol?.off ? 'text-danger' : ''} ${!today && !isSameMonth(d, month) ? (hol?.off ? 'opacity-50' : 'text-fg3') : ''}`}
+              } ${!today && tone ? TONE_TEXT[tone] : ''} ${!today && !sel && hol?.off ? 'bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]' : ''} ${!today && !isSameMonth(d, month) ? (tone ? 'opacity-50' : 'text-fg3') : ''}`}
             >
               {d.getDate()}
               {busy.has(ymd(d)) && !today && <span className="absolute bottom-0.5 h-[3px] w-[3px] rounded-full bg-fg3" />}

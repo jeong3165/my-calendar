@@ -173,3 +173,13 @@ export function useHoliday() {
   const s = useHolidaySettings()
   return (d: Date | string) => holidayOn(d, s)
 }
+
+/** 날짜 색: 일요일·공휴일 = 빨강, 토요일 = 파랑 (모든 달력 화면에서 같은 규칙) */
+export type DayTone = 'red' | 'blue' | undefined
+export function dayTone(d: Date, hol?: { off: boolean }): DayTone {
+  if (hol?.off || d.getDay() === 0) return 'red'
+  if (d.getDay() === 6) return 'blue'
+}
+export const TONE_TEXT = { red: 'text-danger', blue: 'text-sat' } as const
+/** 요일 이름(월~일) 색: 월요일 시작 기준 index 5 = 토, 6 = 일 */
+export const weekdayTone = (i: number): DayTone => (i === 6 ? 'red' : i === 5 ? 'blue' : undefined)

@@ -5,7 +5,7 @@ import { createItem } from '../db'
 import { useCalendarItems } from '../lib/subs'
 import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
-import { useHoliday } from '../lib/holidays'
+import { TONE_TEXT, dayTone, useHoliday, weekdayTone } from '../lib/holidays'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { dayItems, isTimed } from '../lib/items'
 import { ItemChip } from './ui'
@@ -44,7 +44,7 @@ export function MonthView() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="grid grid-cols-7 border-b border-line">
         {WEEKDAYS.map((w, i) => (
-          <div key={w} className={`py-1.5 text-center text-[12px] ${i >= 5 ? 'text-fg3' : 'text-fg2'}`}>
+          <div key={w} className={`py-1.5 text-center text-[12px] ${weekdayTone(i) ? TONE_TEXT[weekdayTone(i)!] : 'text-fg2'}`}>
             {w}
           </div>
         ))}
@@ -59,6 +59,7 @@ export function MonthView() {
           const inMonth = isSameMonth(d, date)
           const today = isToday(d)
           const hol = holiday(d)
+          const tone = dayTone(d, hol)
           return (
             <div
               key={key}
@@ -89,7 +90,7 @@ export function MonthView() {
                     setView('day')
                   }}
                   className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 text-[12px] max-md:self-end ${
-                    today ? 'bg-accent font-semibold text-white' : hol?.off ? `text-danger hover:bg-hover ${inMonth ? '' : 'opacity-50'}` : inMonth ? 'text-fg hover:bg-hover' : 'text-fg3 hover:bg-hover'
+                    today ? 'bg-accent font-semibold text-white' : tone ? `${TONE_TEXT[tone]} hover:bg-hover ${inMonth ? '' : 'opacity-50'}` : inMonth ? 'text-fg hover:bg-hover' : 'text-fg3 hover:bg-hover'
                   }`}
                 >
                   {d.getDate() === 1 ? (

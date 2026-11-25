@@ -9,7 +9,7 @@ import type { Item } from '../types'
 import { atMinutes, hm, ymd } from '../lib/date'
 import { dayItems, layoutColumns, timedSegment, isTimed } from '../lib/items'
 import { Checkbox, Icon, ItemChip, toggleDone } from './ui'
-import { useHoliday } from '../lib/holidays'
+import { TONE_TEXT, dayTone, useHoliday } from '../lib/holidays'
 
 const SNAP = 15
 const snap = (m: number) => Math.round(m / SNAP) * SNAP
@@ -239,6 +239,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
           {days.map((d) => {
             const today = isToday(d)
             const hol = holiday(d)
+            const tone = dayTone(d, hol)
             return (
               <button
                 key={d.toISOString()}
@@ -249,9 +250,9 @@ export function TimeGrid({ days }: { days: Date[] }) {
                 title={hol?.names.join(', ')}
                 className={`flex min-w-0 items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1 ${hol?.off ? 'bg-[color-mix(in_srgb,var(--danger)_8%,transparent)]' : ''}`}
               >
-                <span className={today ? 'text-accent' : hol?.off ? 'text-danger' : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
+                <span className={today ? 'text-accent' : tone ? TONE_TEXT[tone] : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
                 <span
-                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 font-semibold ${today ? 'bg-accent text-white' : hol?.off ? 'text-danger' : 'text-fg'}`}
+                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 font-semibold ${today ? 'bg-accent text-white' : tone ? TONE_TEXT[tone] : 'text-fg'}`}
                 >
                   {format(d, 'd')}
                 </span>
@@ -271,7 +272,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
           {days.map((d, i) => (
             <div
               key={d.toISOString()}
-              className={`flex max-h-28 min-h-8 flex-col gap-0.5 overflow-y-auto border-l border-line p-0.5 ${allDayDrop === i ? 'bg-accent-soft' : ''}`}
+              className={`flex max-h-28 min-h-8 flex-col gap-0.5 overflow-y-auto border-l border-line p-0.5 ${allDayDrop === i ? 'bg-accent-soft' : holiday(d)?.off ? 'bg-[color-mix(in_srgb,var(--danger)_5%,transparent)]' : ''}`}
               onDoubleClick={async () => {
                 const it = await createItem({ type: 'event', allDay: true, start: startOfDay(d).toISOString(), end: startOfDay(d).toISOString() })
                 open(it.id, true)
@@ -331,7 +332,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
               const lay = layoutColumns(segs.map((s) => ({ id: s.it.id, startMin: s.startMin, endMin: s.endMin })))
               const today = isToday(d)
               return (
-                <div key={d.toISOString()} className="relative border-l border-line">
+                <div key={d.toISOString()} className={`relative border-l border-line ${holiday(d)?.off ? 'bg-[color-mix(in_srgb,var(--danger)_5%,transparent)]' : ''}`}>
                   {segs.map(({ it, startMin, endMin }) => {
                     const { col, cols: c } = lay.get(it.id)!
                     const height = Math.max(((endMin - startMin) / 60) * H - 2, 18)
