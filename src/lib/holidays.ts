@@ -183,3 +183,9 @@ export function dayTone(d: Date, hol?: { off: boolean }): DayTone {
 export const TONE_TEXT = { red: 'text-danger', blue: 'text-sat' } as const
 /** 요일 이름(월~일) 색: 월요일 시작 기준 index 5 = 토, 6 = 일 */
 export const weekdayTone = (i: number): DayTone => (i === 6 ? 'red' : i === 5 ? 'blue' : undefined)
+
+/** 쉬는 날인지 (표시 설정과 상관없이 공휴일 계산 + 직접 추가한 휴일) — 반복 일정 건너뛰기용 */
+export function isDayOff(key: string): boolean {
+  if (holidaysOfYear(Number(key.slice(0, 4))).get(key)?.some((h) => h.kind !== 'observance')) return true
+  return useHolidaySettings.getState().custom.some((c) => c.date === key)
+}

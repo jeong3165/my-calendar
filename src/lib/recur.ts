@@ -1,3 +1,4 @@
+import { isDayOff } from './holidays'
 import { addDays, addMonths, addYears, differenceInCalendarDays, format, getDaysInMonth, startOfMonth, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { createItem, db, deleteItem, updateItem } from '../db'
@@ -36,7 +37,7 @@ export function occurrences(it: Item, from: string, to: string, opts: { max?: nu
     if (k > to) return false
     n++
     if (r.count && n > r.count) return false
-    if (k >= from && !ex.has(k)) {
+    if (k >= from && !ex.has(k) && !(r.skipHolidays && isDayOff(k))) {
       out.push(k)
       if (opts.max && out.length >= opts.max) return false
     }
@@ -177,6 +178,7 @@ export function repeatLabel(r: Repeat, base?: string): string {
   }
   if (r.until) s += ` · ${format(parseYmd(r.until), 'yyyy년 M월 d일')}까지`
   else if (r.count) s += ` · ${r.count}회`
+  if (r.skipHolidays) s += ' · 공휴일 제외'
   return s
 }
 

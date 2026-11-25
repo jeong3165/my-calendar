@@ -22,6 +22,7 @@ export type Repeat = {
   nth?: number // monthly='nth' 일 때 1~4 번째, -1 = 마지막 (없으면 기준일로 계산)
   until?: string // YYYY-MM-DD (포함)
   count?: number // 총 횟수
+  skipHolidays?: boolean // 공휴일(대체공휴일·선거일·직접 추가한 휴일)엔 건너뛰기
 }
 
 /**

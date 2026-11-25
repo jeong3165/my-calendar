@@ -142,6 +142,13 @@ export function RepeatEditor({ item, onRemoved }: { item: Item; onRemoved?: () =
             )}
           </div>
 
+          {r.freq !== 'yearly' && (
+            <label className="flex items-center gap-1.5" title="설날·추석·대체공휴일·선거일과 설정에서 직접 추가한 휴일에는 이 회차를 만들지 않아요">
+              <input type="checkbox" checked={!!r.skipHolidays} onChange={(e) => set({ skipHolidays: e.target.checked || undefined })} className="accent-[var(--accent)]" />
+              공휴일엔 건너뛰기
+            </label>
+          )}
+
           <p className="text-[12px] text-fg3">
             {repeatLabel(r, base)} · {format(parseYmd(base), 'yyyy년 M월 d일 (EEE)', { locale: ko })}부터
             {item.exdates?.length ? ` · 건너뛴 회차 ${item.exdates.length}개` : ''}

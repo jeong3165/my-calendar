@@ -1,4 +1,5 @@
 import { ddayCalendarItems } from './dday'
+import { useHolidaySettings } from './holidays'
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -75,10 +76,12 @@ export function useSubscribedItems(): Item[] {
 export function useCalendarItems(): Item[] {
   const own = useItems()
   const sub = useSubscribedItems()
+  const custom = useHolidaySettings((s) => s.custom) // 직접 추가한 휴일이 바뀌면 '공휴일엔 건너뛰기' 반복을 다시 계산
   return useMemo(() => {
     const dd = ddayCalendarItems(own) // 기념일은 캘린더에 종일 일정처럼
-    return sub.length || dd.length ? [...own, ...sub, ...dd] : own
-  }, [own, sub])
+    return [...own, ...sub, ...dd]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [own, sub, custom])
 }
 
 /* ───────── 가져오기 ───────── */

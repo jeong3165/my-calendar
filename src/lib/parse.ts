@@ -81,6 +81,7 @@ export function parseQuick(input: string, now = new Date(), opts: { noDate?: boo
 
   const rules: [RegExp, (m: RegExpMatchArray) => Date | null][] = [
     [/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/, (m) => new Date(+m[1], +m[2] - 1, +m[3])],
+    [/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/, (m) => new Date(+m[1], +m[2] - 1, +m[3])],
     [
       /(\d{1,2})월\s*(\d{1,2})일/,
       (m) => {
@@ -288,6 +289,11 @@ function parseRepeat(text: string, today: Date): { repeat: Repeat; date?: Date; 
     cut(m)
   } else if ((m = s.match(/(\d{1,3})\s*(?:회|번)(?![가-힣])/))) {
     repeat.count = Number(m[1])
+    cut(m)
+  }
+  // "공휴일 제외" / "휴일 빼고" / "공휴일엔 쉼"
+  if (repeat.freq !== 'yearly' && (m = s.match(/(?:공휴일|휴일|빨간\s*날)\s*(?:은|엔|에는)?\s*(?:제외|빼고|건너뛰기|건너뜀|쉼|쉬기)/))) {
+    repeat.skipHolidays = true
     cut(m)
   }
   return { repeat, date, rest: s }
