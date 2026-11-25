@@ -247,7 +247,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                   setView('day')
                 }}
                 title={hol?.names.join(', ')}
-                className="flex min-w-0 items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1"
+                className={`flex min-w-0 items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1 ${hol?.off ? 'bg-[color-mix(in_srgb,var(--danger)_8%,transparent)]' : ''}`}
               >
                 <span className={today ? 'text-accent' : hol?.off ? 'text-danger' : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
                 <span
@@ -256,7 +256,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                   {format(d, 'd')}
                 </span>
                 {hol && (
-                  <span className={`min-w-0 truncate text-[11.5px] ${hol.off ? 'text-danger' : 'text-fg3'} ${days.length > 3 ? 'max-lg:hidden' : ''}`}>{hol.names.join(' · ')}</span>
+                  <span className={`min-w-0 truncate text-[11.5px] ${hol.off ? 'font-medium text-danger' : 'text-fg3'} ${days.length > 3 ? 'max-lg:hidden' : ''}`}>{hol.names.join(' · ')}</span>
                 )}
               </button>
             )

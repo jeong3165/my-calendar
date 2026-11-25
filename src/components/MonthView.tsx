@@ -62,7 +62,7 @@ export function MonthView() {
           return (
             <div
               key={key}
-              className={`flex min-h-0 flex-col gap-px overflow-hidden border-r border-b border-line p-1 ${over === key ? 'bg-accent-soft' : inMonth ? '' : 'bg-sidebar/60'}`}
+              className={`flex min-h-0 flex-col gap-px overflow-hidden border-r border-b border-line p-1 ${over === key ? 'bg-accent-soft' : hol?.off ? 'bg-[color-mix(in_srgb,var(--danger)_7%,transparent)]' : inMonth ? '' : 'bg-sidebar/60'}`}
               onDoubleClick={async () => {
                 const it = await createItem({ type: 'event', allDay: true, start: startOfDay(d).toISOString(), end: startOfDay(d).toISOString() })
                 open(it.id, true)
@@ -79,7 +79,7 @@ export function MonthView() {
             >
               <div className="flex items-center justify-end gap-1 max-md:flex-col-reverse max-md:items-stretch max-md:gap-0">
                 {hol && (
-                  <span className={`min-w-0 flex-1 truncate pl-0.5 text-[11px] max-md:pl-0 max-md:text-center max-md:text-[9.5px] max-md:leading-tight ${hol.off ? 'text-danger' : 'text-fg3'}`} title={hol.names.join(', ')}>
+                  <span className={`min-w-0 flex-1 truncate pl-0.5 text-[11px] max-md:pl-0 max-md:text-center max-md:text-[9.5px] max-md:leading-tight ${hol.off ? 'font-medium text-danger' : 'text-fg3'}`} title={hol.names.join(', ')}>
                     {hol.names.map(short).join(' · ')}
                   </span>
                 )}
@@ -93,9 +93,9 @@ export function MonthView() {
                   }`}
                 >
                   {d.getDate() === 1 ? (
-                    <>
+                    <span className="whitespace-nowrap">
                       <span className="max-md:hidden">{format(d, 'M월 ')}</span>1<span className="max-md:hidden">일</span>
-                    </>
+                    </span>
                   ) : (
                     d.getDate()
                   )}
