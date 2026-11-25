@@ -12,7 +12,7 @@ import { parseYmd, toLocalInput, ymd } from '../lib/date'
 import { allTags, colorVars, isTimed, tagColor } from '../lib/items'
 import { Checkbox, FocusButton, Icon, type IconName } from './ui'
 import { baseDate, changeOccurrence, deleteSmart, isRecurring, repeatLabel, resolveItem, toggleOccurrenceDone, touchesTime, updateSmart } from '../lib/recur'
-import { RemindEditor, RepeatEditor } from './PeekExtras'
+import { ProjectPicker, RemindEditor, RepeatEditor, SubtaskEditor } from './PeekExtras'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -20,7 +20,7 @@ export function PeekPanel() {
   const { selectedId, close, isMobile } = useUI()
   const items = useCalendarItems()
   const item = selectedId ? resolveItem(items, selectedId) : undefined
-  if (!item) return null
+  if (!item || item.type === 'project') return null // 프로젝트는 프로젝트 페이지에서
   return (
     <aside
       className={`flex min-h-0 flex-col bg-bg ${isMobile ? 'fixed inset-0 z-50' : 'w-[440px] shrink-0 border-l border-line xl:w-[480px]'}`}
@@ -177,6 +177,10 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
           {series && <RepeatEditor item={series} onRemoved={() => occ && open(occ.seriesId)} />}
         </Prop>
 
+        <Prop icon="folder" label="프로젝트">
+          <ProjectPicker value={(series ?? item).projectId} onChange={(projectId) => set({ projectId })} />
+        </Prop>
+
         <Prop icon="clock" label="집중 기록">
           <FocusLog itemId={item.id} />
         </Prop>
@@ -223,6 +227,8 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
           </div>
         </Prop>
       </div>
+
+      <SubtaskEditor subtasks={(series ?? item).subtasks ?? []} onChange={(subtasks) => set({ subtasks: subtasks.length ? subtasks : undefined })} />
 
       <div className="my-5 border-t border-line" />
       <NoteEditor item={item} />

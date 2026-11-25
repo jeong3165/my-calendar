@@ -5,6 +5,7 @@ import { PRIORITY_LABEL, type Priority } from '../types'
 import { allTags, colorVars, tagColor } from '../lib/items'
 import { PERIOD_LABEL, isFiltered, type Period, type SortKey } from '../lib/dbview'
 import { Icon } from './ui'
+import { useProjects } from '../lib/projects'
 
 export const SORT_LABEL: Record<SortKey, string> = {
   title: '제목',
@@ -12,6 +13,7 @@ export const SORT_LABEL: Record<SortKey, string> = {
   date: '날짜',
   status: '상태',
   priority: '우선순위',
+  project: '프로젝트',
   tags: '태그',
   updated: '수정일',
 }
@@ -23,6 +25,7 @@ export function FilterBar() {
   const { mode, filters: f, setFilters, resetFilters, sort, setSort, boardGroup, setBoardGroup } = useUI()
   const items = useItems()
   const tags = useMemo(() => allTags(items), [items])
+  const projects = useProjects()
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
 
@@ -34,7 +37,7 @@ export function FilterBar() {
   }, [open])
 
   const active = isFiltered(f) || (mode === 'table' && f.type !== 'all')
-  const count = [f.q.trim(), f.tags.length, f.priorities.length, f.period !== 'all', f.hideDone, mode === 'table' && f.type !== 'all'].filter(Boolean).length
+  const count = [f.q.trim(), f.tags.length, f.projects?.length, f.priorities.length, f.period !== 'all', f.hideDone, mode === 'table' && f.type !== 'all'].filter(Boolean).length
 
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
@@ -90,6 +93,15 @@ export function FilterBar() {
                 </button>
               ))}
             </Section>
+            {projects.length > 0 && (
+              <Section label="프로젝트">
+                {[...projects.filter((p) => !p.done).map((p) => [p.id, `${p.icon ?? '📁'} ${p.title || '이름 없음'}`] as const), ['none', '프로젝트 없음'] as const].map(([id, l]) => (
+                  <button key={id} onClick={() => setFilters({ projects: toggle(f.projects ?? [], id) })} className={chip((f.projects ?? []).includes(id))}>
+                    {l}
+                  </button>
+                ))}
+              </Section>
+            )}
             {tags.length > 0 && (
               <Section label="태그 (하나라도 있으면)">
                 {tags.map(({ tag }) => (
@@ -143,6 +155,7 @@ export function FilterBar() {
             [
               ['status', '상태별'],
               ['priority', '우선순위별'],
+              ['project', '프로젝트별'],
             ] as const
           ).map(([g, l]) => (
             <button

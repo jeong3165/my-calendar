@@ -12,7 +12,7 @@ const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia(mob
 
 /* 보기 설정은 이 브라우저에 기억 (편의 기능, 실패해도 무방) */
 const PREFS = 'my-calendar.view-prefs'
-type Prefs = { mode: Mode; filters: Filters; sort: Sort; boardGroup: 'status' | 'priority' }
+type Prefs = { mode: Mode; filters: Filters; sort: Sort; boardGroup: 'status' | 'priority' | 'project' }
 function loadPrefs(): Partial<Prefs> {
   try {
     return JSON.parse(localStorage.getItem(PREFS) ?? '{}')
@@ -33,14 +33,16 @@ type UI = {
   mode: Mode
   filters: Filters
   sort: Sort
-  boardGroup: 'status' | 'priority'
+  boardGroup: 'status' | 'priority' | 'project'
   setMode: (m: Mode) => void
   setFilters: (f: Partial<Filters>) => void
   resetFilters: () => void
   setSort: (s: Sort) => void
-  setBoardGroup: (g: 'status' | 'priority') => void
+  setBoardGroup: (g: 'status' | 'priority' | 'project') => void
   daySub: 'plan' | 'review' | 'week'
   timerPanel: boolean
+  projectId: string | null
+  openProject: (id: string) => void
   dayDate: Date
   setDaySub: (s: 'plan' | 'review' | 'week') => void
   setDayDate: (d: Date) => void
@@ -95,7 +97,7 @@ async function discardIfEmptyDraft(draftId: string | null) {
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
 export const useUI = create<UI>((set, get) => ({
-  mode: prefs.mode ?? 'calendar',
+  mode: prefs.mode === 'project' ? 'calendar' : (prefs.mode ?? 'calendar'),
   filters: { ...DEFAULT_FILTERS, ...prefs.filters },
   sort: prefs.sort ?? { key: 'date', dir: 'asc' },
   boardGroup: prefs.boardGroup ?? 'status',
@@ -108,6 +110,12 @@ export const useUI = create<UI>((set, get) => ({
   daySub: new Date().getHours() < 15 ? 'plan' : 'review',
   dayDate: new Date(),
   timerPanel: false,
+  projectId: null,
+  openProject: (projectId) => {
+    const { draftId, selectedId } = get()
+    if (draftId && draftId === selectedId) void discardIfEmptyDraft(draftId)
+    set({ mode: 'project', projectId, selectedId: null, draftId: null, ...(isMobileNow() ? { sidebarOpen: false } : {}) })
+  },
   setDaySub: (daySub) => set({ daySub }),
   setDayDate: (dayDate) => set({ dayDate }),
   setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),
@@ -136,6 +144,11 @@ export const useUI = create<UI>((set, get) => ({
     const { draftId, selectedId } = get()
     if (draftId && draftId !== id && draftId === selectedId) void discardIfEmptyDraft(draftId)
     set({ selectedId: id, draftId: draft ? id : null })
+    // 프로젝트면 상세 패널 대신 프로젝트 페이지로
+    if (!id.includes('::'))
+      void db.items.get(id).then((it) => {
+        if (it?.type === 'project' && get().selectedId === id) get().openProject(id)
+      })
   },
   close: () => {
     const { draftId, selectedId } = get()

@@ -6,6 +6,7 @@ import type { Item } from '../types'
 import { hm, parseYmd, relDay, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
+import { withProject } from '../lib/projects'
 import { repeatLabel } from '../lib/recur'
 import { Icon, Kbd, type IconName } from './ui'
 
@@ -31,7 +32,7 @@ export function CommandPalette() {
           icon: 'calendar',
           label: `새 일정: “${p.title}”${when}${rep}`,
           run: async () => {
-            const it = await createItem({ type: 'event', ...parsedToItem(p, 'event') })
+            const it = await createItem({ type: 'event', ...(await withProject(parsedToItem(p, 'event'), p.project)) })
             if (it.start) ui.setDate(new Date(it.start))
             else {
               // 날짜가 없으면 오늘 다음 정시 1시간 일정
@@ -47,7 +48,7 @@ export function CommandPalette() {
           icon: 'done',
           label: `새 할 일: “${p.title}”${when}${rep}`,
           run: async () => {
-            const it = await createItem({ type: 'task', ...parsedToItem(p, 'task') })
+            const it = await createItem({ type: 'task', ...(await withProject(parsedToItem(p, 'task'), p.project)) })
             ui.open(it.id)
           },
         })

@@ -5,6 +5,8 @@ import { PRIORITY_LABEL, STATUS_LABEL, type Item, type Priority, type Status } f
 import { applyFilters, setStatus, sortRows, statusOf, toRows } from '../lib/dbview'
 import { colorVars, tagColor } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
+import { subtaskProgress, useProjects, withProject } from '../lib/projects'
+import { SubBadge } from './ProjectView'
 import { resolveItem, updateSmart } from '../lib/recur'
 import { Checkbox, Icon, toggleDone } from './ui'
 import { fmtWhen, isOverdue, PRIORITY_COLOR, STATUS_COLOR } from './viewUtil'
@@ -16,6 +18,7 @@ const MAX_DONE = 30
 export function BoardView() {
   const { filters, boardGroup, open, selectedId, showToast } = useUI()
   const items = useItems()
+  const projects = useProjects()
   const [over, setOver] = useState<string | null>(null)
   const [showAllDone, setShowAllDone] = useState(false)
 
@@ -33,7 +36,14 @@ export function BoardView() {
           match: (it) => statusOf(it) === s,
           patch: () => ({ done: s === 'done', doing: s === 'doing' ? true : undefined }),
         }))
-      : (['high', 'normal', 'low'] as Priority[]).map((p) => ({
+      : boardGroup === 'project'
+        ? [
+            ...projects
+              .filter((p) => !p.done)
+              .map((p) => ({ key: p.id, label: `${p.icon ?? '📁'} ${p.title || '이름 없는 프로젝트'}`, color: p.color, match: (it: Item) => it.projectId === p.id, patch: () => ({ projectId: p.id }) })),
+            { key: 'none', label: '프로젝트 없음', color: 'gray', match: (it: Item) => !it.projectId || !projects.some((p) => p.id === it.projectId && !p.done), patch: () => ({}) },
+          ]
+        : (['high', 'normal', 'low'] as Priority[]).map((p) => ({
           key: p,
           label: `우선순위 ${PRIORITY_LABEL[p]}`,
           color: PRIORITY_COLOR[p],
@@ -49,7 +59,8 @@ export function BoardView() {
     if (boardGroup === 'status') {
       const err = await setStatus(it, col.key as Status)
       if (err) showToast(err)
-    } else await updateSmart(it, { priority: col.key as Priority })
+    } else if (boardGroup === 'project') await updateSmart(it, { projectId: col.key === 'none' ? undefined : col.key })
+    else await updateSmart(it, { priority: col.key as Priority })
   }
 
   return (
@@ -81,7 +92,7 @@ export function BoardView() {
             </header>
             <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
               {list.map((it) => (
-                <Card key={it.id} it={it} selected={it.id === selectedId} onOpen={() => open(it.id)} showPriority={boardGroup === 'status'} />
+                <Card key={it.id} it={it} selected={it.id === selectedId} onOpen={() => open(it.id)} showPriority={boardGroup !== 'priority'} project={boardGroup === 'project' ? undefined : projects.find((p) => p.id === it.projectId)} />
               ))}
               {hidden > 0 && (
                 <button onClick={() => setShowAllDone(true)} className="rounded-[6px] px-2 py-1.5 text-left text-[13px] text-fg2 hover:bg-hover">
@@ -97,8 +108,9 @@ export function BoardView() {
   )
 }
 
-function Card({ it, selected, onOpen, showPriority }: { it: Item; selected: boolean; onOpen: () => void; showPriority: boolean }) {
+function Card({ it, selected, onOpen, showPriority, project }: { it: Item; selected: boolean; onOpen: () => void; showPriority: boolean; project?: Item }) {
   const when = fmtWhen(it)
+  const sp = subtaskProgress(it)
   return (
     <article
       draggable
@@ -117,10 +129,16 @@ function Card({ it, selected, onOpen, showPriority }: { it: Item; selected: bool
         </span>
         <span className={`min-w-0 flex-1 text-[14px] leading-snug font-medium break-words ${it.done ? 'text-fg3 line-through' : ''}`}>{it.title || '제목 없음'}</span>
       </div>
-      {(when || it.tags.length > 0 || it.occ || (showPriority && it.priority === 'high')) && (
+      {(when || it.tags.length > 0 || it.occ || sp || project || (showPriority && it.priority === 'high')) && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-[22px] text-[12px]">
           {when && <span className={`tnum ${isOverdue(it) ? 'text-danger' : 'text-fg2'}`}>{when}</span>}
           {it.occ && <Icon name="repeat" size={12} className="text-fg3" />}
+          {sp && <SubBadge done={sp.done} total={sp.total} />}
+          {project && (
+            <span className="max-w-[120px] truncate text-fg2">
+              {project.icon ?? '📁'} {project.title}
+            </span>
+          )}
           {showPriority && it.priority === 'high' && (
             <span className="flex items-center gap-0.5 text-danger">
               <Icon name="flag" size={11} />
@@ -143,7 +161,7 @@ function AddCard({ patch }: { patch: () => Partial<Item> }) {
   async function add() {
     const p = parseQuick(text)
     if (!p.title) return
-    await createItem({ type: 'task', ...parsedToItem(p, 'task'), ...patch() })
+    await createItem({ type: 'task', ...(await withProject(parsedToItem(p, 'task'), p.project)), ...patch() })
     setText('')
   }
   const onKey = (e: KeyboardEvent) => {

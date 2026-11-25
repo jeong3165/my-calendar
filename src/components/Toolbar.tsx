@@ -45,7 +45,9 @@ export function Toolbar() {
       ? title(view, date)
       : mode === 'table'
         ? { main: '모든 항목', sub: '일정과 할 일을 표로' }
-        : mode === 'board'
+        : mode === 'project'
+          ? { main: '프로젝트', sub: '할 일을 묶어서 관리' }
+          : mode === 'board'
           ? { main: '할 일 보드', sub: '끌어다 놓아 상태 바꾸기' }
           : daySub === 'plan'
             ? { main: '아침 계획', sub: format(new Date(), 'M월 d일 EEEE', { locale: ko }) }
@@ -139,7 +141,7 @@ export function Toolbar() {
                 ))}
               </div>
             </>
-          ) : mode === 'day' ? (
+          ) : mode === 'project' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
                 <>

@@ -5,6 +5,8 @@ import { PRIORITY_LABEL, STATUS_LABEL, type Item, type Priority, type Status } f
 import { applyFilters, setStatus, sortRows, statusOf, toRows, type SortKey } from '../lib/dbview'
 import { colorVars, tagColor } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
+import { subtaskProgress, useProjects, withProject } from '../lib/projects'
+import { SubBadge } from './ProjectView'
 import { repeatLabel, baseDate, updateSmart } from '../lib/recur'
 import { SORT_LABEL } from './FilterBar'
 import { ago } from './SettingsDialog'
@@ -17,6 +19,7 @@ const COLS: { key: SortKey; w: string }[] = [
   { key: 'date', w: 'w-[190px]' },
   { key: 'status', w: 'w-[110px]' },
   { key: 'priority', w: 'w-[100px]' },
+  { key: 'project', w: 'w-[160px]' },
   { key: 'tags', w: 'w-[170px]' },
   { key: 'updated', w: 'w-[96px]' },
 ]
@@ -25,6 +28,7 @@ export function TableView() {
   const { filters, sort, setSort, open, selectedId, showToast } = useUI()
   const items = useItems()
   const rows = useMemo(() => sortRows(applyFilters(toRows(items), filters), sort), [items, filters, sort])
+  const projects = useProjects()
 
   const head = (key: SortKey) => (
     <button
@@ -51,7 +55,7 @@ export function TableView() {
         </thead>
         <tbody>
           {rows.map((it) => (
-            <Row key={it.id} it={it} selected={it.id === selectedId} onOpen={() => open(it.id)} onError={showToast} />
+            <Row key={it.id} it={it} selected={it.id === selectedId} onOpen={() => open(it.id)} onError={showToast} projects={projects} />
           ))}
         </tbody>
       </table>
@@ -64,7 +68,8 @@ export function TableView() {
   )
 }
 
-function Row({ it, selected, onOpen, onError }: { it: Item; selected: boolean; onOpen: () => void; onError: (m: string) => void }) {
+function Row({ it, selected, onOpen, onError, projects }: { it: Item; selected: boolean; onOpen: () => void; onError: (m: string) => void; projects: Item[] }) {
+  const sp = subtaskProgress(it)
   const task = it.type === 'task'
   const series = it.occ ? undefined : it
   const rep = it.repeat ? repeatLabel(it.repeat, it.occ ? undefined : baseDate(series ?? it)) : ''
@@ -87,6 +92,7 @@ function Row({ it, selected, onOpen, onError }: { it: Item; selected: boolean; o
               <Icon name="repeat" size={12} />
             </span>
           )}
+          {sp && <SubBadge done={sp.done} total={sp.total} />}
           {it.note && <Icon name="text" size={12} className="shrink-0 text-fg3" />}
           <span className="ml-auto hidden shrink-0 rounded-[4px] border border-line-strong bg-bg px-1.5 text-[11px] text-fg2 group-hover:inline">열기</span>
         </button>
@@ -118,6 +124,13 @@ function Row({ it, selected, onOpen, onError }: { it: Item; selected: boolean; o
           <span className="px-1 text-fg3">—</span>
         )}
       </td>
+      <td className="border-l border-line px-1">
+        <SelectChip
+          value={it.projectId && projects.some((p) => p.id === it.projectId) ? it.projectId : ''}
+          options={[['', '—', 'default'], ...projects.filter((p) => !p.done || p.id === it.projectId).map((p) => [p.id, `${p.icon ?? '📁'} ${p.title || '이름 없음'}`, p.color] as [string, string, string])]}
+          onChange={(v) => void updateSmart(it, { projectId: v || undefined })}
+        />
+      </td>
       <td className="border-l border-line px-2">
         <div className="flex flex-wrap gap-1 py-1">
           {it.tags.map((t) => (
@@ -134,10 +147,10 @@ function Row({ it, selected, onOpen, onError }: { it: Item; selected: boolean; o
 
 /** 노션식 선택 칩: 겉은 색 칩, 실제로는 select */
 function SelectChip({ value, options, onChange }: { value: string; options: [string, string, string][]; onChange: (v: string) => void }) {
-  const cur = options.find(([v]) => v === value)!
+  const cur = options.find(([v]) => v === value) ?? options[0]
   return (
     <label className="relative inline-flex cursor-pointer items-center rounded-[4px] px-1 py-0.5 hover:bg-hover">
-      <span className="rounded-[4px] px-1.5 py-px text-[12px]" style={colorVars(cur[2] as never)}>
+      <span className={`max-w-[140px] truncate rounded-[4px] px-1.5 py-px text-[12px] ${cur[2] === 'default' ? 'text-fg3' : ''}`} style={cur[2] === 'default' ? undefined : colorVars(cur[2] as never)}>
         {cur[1]}
       </span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="값 바꾸기">
@@ -159,7 +172,7 @@ function NewRow() {
     const p = parseQuick(text)
     if (!p.title) return
     const t = type === 'event' ? 'event' : 'task'
-    await createItem({ type: t, ...parsedToItem(p, t) })
+    await createItem({ type: t, ...(await withProject(parsedToItem(p, t), p.project)) })
     setText('')
   }
   const onKey = (e: KeyboardEvent) => {

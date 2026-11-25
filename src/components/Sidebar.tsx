@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { exportJSON, importJSON, useItems } from '../db'
 import { useUI } from '../store'
 import type { Section } from '../types'
@@ -9,6 +9,7 @@ import { Icon, Kbd, MOD, type IconName } from './ui'
 import { SyncLabel } from './SettingsDialog'
 import { syncNow, useSync } from '../lib/sync'
 import { setSubscriptions, useSubs } from '../lib/subs'
+import { createProject, projectStats, useProjects } from '../lib/projects'
 
 const NAV: { s: Section; icon: IconName }[] = [
   { s: { kind: 'today' }, icon: 'today' },
@@ -93,6 +94,8 @@ export function Sidebar() {
             </div>
           </div>
         )}
+
+        <ProjectsSection />
 
         <SubsSection onSetup={() => setSettings(true, 'subs')} />
 
@@ -219,6 +222,60 @@ function SubsSection({ onSetup }: { onSetup: () => void }) {
             </button>
           )
         })
+      )}
+    </div>
+  )
+}
+
+/** 사이드바: 프로젝트 목록 (진행률 표시) */
+function ProjectsSection() {
+  const projects = useProjects()
+  const items = useItems()
+  const { mode, projectId, openProject } = useUI()
+  const [showDone, setShowDone] = useState(false)
+  const active = projects.filter((p) => !p.done)
+  const done = projects.filter((p) => p.done)
+  const row = (p: (typeof projects)[number]) => {
+    const st = projectStats(p, items)
+    const on = mode === 'project' && projectId === p.id
+    return (
+      <button
+        key={p.id}
+        onClick={() => openProject(p.id)}
+        className={`flex w-full items-center gap-2 rounded-[6px] px-2 py-[5px] text-left text-[14px] ${on ? 'bg-active font-medium text-fg' : 'text-fg2 hover:bg-hover'}`}
+      >
+        <span className="w-5 shrink-0 text-center text-[15px]">{p.icon ?? '📁'}</span>
+        <span className={`min-w-0 flex-1 truncate ${p.done ? 'line-through' : ''}`}>{p.title || '이름 없는 프로젝트'}</span>
+        {st.total > 0 && <span className="tnum shrink-0 text-[11px] text-fg3">{Math.round(st.pct * 100)}%</span>}
+      </button>
+    )
+  }
+  return (
+    <div className="px-1.5 pt-3">
+      <div className="flex items-center px-2 pb-1">
+        <span className="flex-1 text-[12px] font-medium text-fg3">프로젝트</span>
+        <button
+          onClick={async () => openProject((await createProject()).id)}
+          className="grid h-5 w-5 place-items-center rounded text-fg3 hover:bg-hover hover:text-fg2"
+          title="새 프로젝트"
+          aria-label="새 프로젝트"
+        >
+          <Icon name="plus" size={13} />
+        </button>
+      </div>
+      {projects.length === 0 && (
+        <button onClick={async () => openProject((await createProject()).id)} className="w-full rounded-[6px] px-2 py-1 text-left text-[12px] text-fg3 hover:bg-hover">
+          할 일을 프로젝트로 묶어 보세요 →
+        </button>
+      )}
+      {active.map(row)}
+      {done.length > 0 && (
+        <>
+          <button onClick={() => setShowDone(!showDone)} className="px-2 py-1 text-[12px] text-fg3 hover:text-fg2">
+            {showDone ? '▾' : '▸'} 완료된 프로젝트 {done.length}
+          </button>
+          {showDone && done.map(row)}
+        </>
       )}
     </div>
   )

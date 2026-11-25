@@ -11,6 +11,7 @@ import { TaskList } from './components/TaskList'
 import { TableView } from './components/TableView'
 import { BoardView } from './components/BoardView'
 import { DayView } from './components/DayView'
+import { ProjectView } from './components/ProjectView'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
@@ -165,7 +166,7 @@ export default function App() {
         <Toolbar />
         <div className="flex min-h-0 flex-1 border-t border-line">
           <div className="flex min-w-0 flex-1 flex-col">
-            {mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
+            {mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
             {isMobile && mode === 'calendar' && (
               <section className="max-h-[38vh] shrink-0 overflow-y-auto border-t border-line bg-sidebar pt-2">
                 <div className="px-3.5 pb-1 text-[12px] font-medium text-fg3">오늘 할 일</div>

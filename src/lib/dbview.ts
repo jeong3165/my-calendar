@@ -18,7 +18,7 @@ export const sortTime = (it: Item): string => it.start ?? (it.due ? `${it.due}T2
 /** 반복 항목은 '오늘 또는 다음 회차' 하나로 보여 준다 (끝난 반복은 마지막 회차) */
 export function toRows(items: Item[], now = new Date()): Item[] {
   const today = ymd(now)
-  return items.map((it) => {
+  return items.filter((it) => it.type !== 'project').map((it) => {
     if (!isRecurring(it)) return it
     const next = nextOccurrence(it, today)
     if (next) return instance(it, next)
@@ -43,6 +43,7 @@ export function applyFilters(rows: Item[], f: Filters, now = new Date()): Item[]
     if (f.hideDone && it.done) return false
     if (q && !`${it.title}\n${it.note ?? ''}\n${it.tags.join(' ')}`.toLowerCase().includes(q)) return false
     if (f.tags.length && !f.tags.some((t) => it.tags.includes(t))) return false
+    if (f.projects?.length && !f.projects.includes(it.projectId ?? 'none')) return false
     if (f.priorities.length && (it.type !== 'task' || !f.priorities.includes(it.priority ?? 'normal'))) return false
     const k = dateKey(it)
     if (f.period === 'none') return !k
@@ -76,6 +77,8 @@ export function sortRows(rows: Item[], s: Sort): Item[] {
         return it.type === 'task' ? statusRank[statusOf(it)] : 9
       case 'priority':
         return it.type === 'task' ? prioRank[it.priority ?? 'normal'] : 9
+      case 'project':
+        return it.projectId ?? '\uffff'
       case 'tags':
         return it.tags.join(',') || '￿'
       case 'updated':

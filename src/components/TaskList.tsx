@@ -7,6 +7,8 @@ import { hm, relDay, ymd } from '../lib/date'
 import { colorVars, sectionTasks, tagColor, taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
 import { repeatLabel } from '../lib/recur'
+import { subtaskProgress, withProject, useProjects } from '../lib/projects'
+import { SubBadge } from './ProjectView'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 
 export const sectionTitle = (s: Section) =>
@@ -16,6 +18,7 @@ export function TaskList({ section, compact = false }: { section: Section; compa
   const items = useItems()
   const { open, selectedId } = useUI()
   const list = useMemo(() => sectionTasks(items, section), [items, section])
+  const projects = useProjects()
 
   return (
     <div className="flex flex-col">
@@ -25,7 +28,7 @@ export function TaskList({ section, compact = false }: { section: Section; compa
       ) : (
         <ul className={compact ? '' : 'pb-2'}>
           {list.map((t) => (
-            <TaskRow key={t.id} t={t} selected={t.id === selectedId} onOpen={() => open(t.id)} />
+            <TaskRow key={t.id} t={t} selected={t.id === selectedId} onOpen={() => open(t.id)} project={t.projectId ? projects.find((x) => x.id === t.projectId) : undefined} />
           ))}
         </ul>
       )}
@@ -36,7 +39,8 @@ export function TaskList({ section, compact = false }: { section: Section; compa
 const empty = (s: Section) =>
   s.kind === 'today' ? '오늘 할 일이 없어요.' : s.kind === 'inbox' ? '날짜 없는 할 일이 여기에 모여요.' : s.kind === 'done' ? '아직 완료한 할 일이 없어요.' : '할 일이 없어요.'
 
-function TaskRow({ t, selected, onOpen }: { t: Item; selected: boolean; onOpen: () => void }) {
+function TaskRow({ t, selected, onOpen, project }: { t: Item; selected: boolean; onOpen: () => void; project?: Item }) {
+  const sp = subtaskProgress(t)
   const key = taskKey(t)
   const overdue = !t.done && !!key && key < ymd(new Date())
   return (
@@ -58,7 +62,7 @@ function TaskRow({ t, selected, onOpen }: { t: Item; selected: boolean; onOpen: 
           <div className={`min-w-0 flex-1 truncate text-[14px] leading-[20px] ${t.done ? 'text-fg3 line-through' : ''}`}>{t.title || '제목 없음'}</div>
           {!t.done && <FocusButton item={t} className="opacity-0 group-hover:opacity-100 focus:opacity-100" />}
         </div>
-        {(key || t.priority === 'high' || t.tags.length > 0 || t.doing) && (
+        {(key || t.priority === 'high' || t.tags.length > 0 || t.doing || project || sp) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-4 text-fg2">
             {key && (
               <span className={`tnum ${overdue ? 'text-danger' : ''}`}>
@@ -67,6 +71,12 @@ function TaskRow({ t, selected, onOpen }: { t: Item; selected: boolean; onOpen: 
               </span>
             )}
             {t.doing && !t.done && <span className="rounded-[3px] px-1 text-[11px]" style={colorVars('blue')}>진행 중</span>}
+            {sp && <SubBadge done={sp.done} total={sp.total} />}
+            {project && (
+              <span className="max-w-[110px] truncate" title={`프로젝트: ${project.title}`}>
+                {project.icon ?? '📁'} {project.title}
+              </span>
+            )}
             {t.priority === 'high' && (
               <span className="flex items-center gap-0.5 text-danger">
                 <Icon name="flag" size={11} />
@@ -100,7 +110,7 @@ function QuickAdd({ section }: { section: Section }) {
     const patch = parsedToItem(parsed, 'task')
     if (section.kind === 'tag' && !patch.tags!.includes(section.tag)) patch.tags = [...patch.tags!, section.tag]
     if (section.kind === 'today' && !patch.due) patch.due = ymd(new Date())
-    await createItem({ type: 'task', ...patch })
+    await createItem({ type: 'task', ...(await withProject(patch, parsed.project)) })
     setText('')
   }
 

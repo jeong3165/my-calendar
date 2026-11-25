@@ -28,6 +28,7 @@ export function isAllDayOn(it: Item, day: Date): boolean {
     const e = it.end ? ymd(new Date(it.end)) : s
     return key >= s && key <= e
   }
+  if (it.type === 'project') return !it.done && it.due === key // 프로젝트 마감일
   return it.type === 'task' && !isTimed(it) && it.due === key
 }
 

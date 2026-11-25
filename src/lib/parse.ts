@@ -16,6 +16,7 @@ export type Parsed = {
   tags: string[]
   priority?: Priority
   repeat?: Repeat
+  project?: string // '@프로젝트' 로 적은 이름
 }
 
 const WD: Record<string, number> = { 월: 0, 화: 1, 수: 2, 목: 3, 금: 4, 토: 5, 일: 6 } // 월요일 기준 offset
@@ -53,6 +54,11 @@ export function parseQuick(input: string, now = new Date()): Parsed {
   let date: Date | undefined
   const today = startOfDay(now)
 
+  let project: string | undefined
+  s = s.replace(/(^|\s)@([^\s#!@]+)/, (_, sp: string, p: string) => {
+    project = p
+    return sp
+  })
   s = s.replace(/#([^\s#!]+)/g, (_, t: string) => {
     if (!tags.includes(t)) tags.push(t)
     return ' '
@@ -149,7 +155,7 @@ export function parseQuick(input: string, now = new Date()): Parsed {
   if (start && !date) date = today
   if (repeat && !date) date = today
 
-  return { title: s.replace(/\s+/g, ' ').trim(), date, start, end, tags, priority, repeat }
+  return { title: s.replace(/\s+/g, ' ').trim(), date, start, end, tags, priority, repeat, project }
 }
 
 /** 해석 결과 → Item 필드 */

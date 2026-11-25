@@ -6,6 +6,10 @@ import { parseYmd, ymd } from '../lib/date'
 import { baseDate, defaultNth, isLastWeekday, monthlyNthLabel, repeatLabel } from '../lib/recur'
 import { REMIND_ALLDAY, REMIND_TIMED, loadNotify, permission, remindLabel } from '../lib/notify'
 import { Icon } from './ui'
+import { useEffect, useRef, useState } from 'react'
+import { useUI } from '../store'
+import { newSubtask, useProjects } from '../lib/projects'
+import type { Subtask } from '../types'
 
 const WD = ['월', '화', '수', '목', '금', '토', '일']
 const UNIT: Record<Repeat['freq'], string> = { daily: '일', weekly: '주', monthly: '개월', yearly: '년' }
@@ -190,5 +194,127 @@ export function RemindEditor({ item, timed, onSetup }: { item: Item; timed: bool
         </button>
       )}
     </div>
+  )
+}
+
+/** 프로젝트 고르기 */
+export function ProjectPicker({ value, onChange }: { value?: string; onChange: (id: string | undefined) => void }) {
+  const projects = useProjects()
+  const openProject = useUI((s) => s.openProject)
+  const cur = projects.find((p) => p.id === value)
+  return (
+    <div className="flex items-center gap-1 px-1 py-[3px]">
+      <label className="relative flex min-w-0 items-center gap-1.5 rounded-[4px] px-1.5 py-0.5 text-[14px] hover:bg-hover">
+        {cur ? (
+          <>
+            <span>{cur.icon ?? '📁'}</span>
+            <span className="truncate">{cur.title || '이름 없는 프로젝트'}</span>
+          </>
+        ) : (
+          <span className="text-fg3">{projects.length ? '없음' : '프로젝트가 아직 없어요'}</span>
+        )}
+        <select value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} className="absolute inset-0 cursor-pointer opacity-0" aria-label="프로젝트 선택">
+          <option value="">없음</option>
+          {projects
+            .filter((p) => !p.done || p.id === value)
+            .map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.icon ?? '📁'} {p.title || '이름 없는 프로젝트'}
+              </option>
+            ))}
+        </select>
+      </label>
+      {cur && (
+        <button onClick={() => openProject(cur.id)} className="rounded-[4px] px-1.5 py-0.5 text-[12px] text-fg3 hover:bg-hover hover:text-fg2">
+          열기 →
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** 하위 할 일 (체크리스트). Enter: 아래에 새 줄, 빈 줄에서 Backspace: 지우기 */
+export function SubtaskEditor({ subtasks: fromDb, onChange: save }: { subtasks: Subtask[]; onChange: (s: Subtask[]) => void }) {
+  // 입력 중 글자가 씹히지 않도록 화면용 사본을 두고, 다른 기기에서 바뀌었을 때만 덮어쓴다
+  const [subtasks, setList] = useState(fromDb)
+  // 내가 보낸 값이 저장소를 거쳐 늦게 돌아오는 것(메아리)은 무시해야 입력이 되돌아가지 않는다
+  const sent = useRef<string[]>([JSON.stringify(fromDb)])
+  useEffect(() => {
+    const incoming = JSON.stringify(fromDb)
+    if (sent.current.includes(incoming)) return
+    sent.current = [incoming]
+    setList(fromDb)
+  }, [fromDb])
+  const onChange = (next: Subtask[]) => {
+    setList(next)
+    sent.current = [...sent.current.slice(-50), JSON.stringify(next)]
+    save(next)
+  }
+  const refs = useRef(new Map<string, HTMLInputElement>())
+  const focusId = useRef<string | null>(null)
+  useEffect(() => {
+    if (focusId.current) {
+      refs.current.get(focusId.current)?.focus()
+      focusId.current = null
+    }
+  })
+  const done = subtasks.filter((s) => s.done).length
+  const update = (id: string, patch: Partial<Subtask>) => onChange(subtasks.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+  const insertAfter = (i: number) => {
+    const n = newSubtask()
+    focusId.current = n.id
+    onChange([...subtasks.slice(0, i + 1), n, ...subtasks.slice(i + 1)])
+  }
+  return (
+    <section className="mt-5">
+      <div className="mb-1 flex items-center gap-2">
+        <Icon name="checklist" size={15} className="text-fg3" />
+        <span className="text-[14px] font-medium">하위 할 일</span>
+        {subtasks.length > 0 && (
+          <>
+            <span className="tnum text-[12px] text-fg3">
+              {done}/{subtasks.length}
+            </span>
+            <div className="h-1 w-20 overflow-hidden rounded-full bg-active">
+              <div className="h-full rounded-full bg-[var(--c-green-bar)]" style={{ width: `${(done / subtasks.length) * 100}%` }} />
+            </div>
+          </>
+        )}
+      </div>
+      <ul>
+        {subtasks.map((s, i) => (
+          <li key={s.id} className="group flex items-center gap-2 rounded-[4px] px-1 py-0.5 hover:bg-hover">
+            <input type="checkbox" checked={s.done} onChange={(e) => update(s.id, { done: e.target.checked })} className="h-[15px] w-[15px] shrink-0 accent-[var(--accent)]" aria-label="완료" />
+            <input
+              ref={(el) => {
+                if (el) refs.current.set(s.id, el)
+                else refs.current.delete(s.id)
+              }}
+              value={s.title}
+              onChange={(e) => update(s.id, { title: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  insertAfter(i)
+                } else if (e.key === 'Backspace' && !s.title) {
+                  e.preventDefault()
+                  focusId.current = subtasks[i - 1]?.id ?? null
+                  onChange(subtasks.filter((x) => x.id !== s.id))
+                }
+              }}
+              placeholder="하위 할 일"
+              className={`min-w-0 flex-1 bg-transparent text-[14px] outline-none ${s.done ? 'text-fg3 line-through' : ''}`}
+            />
+            <button onClick={() => onChange(subtasks.filter((x) => x.id !== s.id))} className="invisible px-1 text-fg3 group-hover:visible hover:text-danger" aria-label="하위 할 일 삭제">
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button onClick={() => insertAfter(subtasks.length - 1)} className="mt-0.5 flex items-center gap-1.5 rounded-[4px] px-1 py-0.5 text-[13px] text-fg3 hover:bg-hover hover:text-fg2">
+        <Icon name="plus" size={14} /> 하위 할 일 추가
+      </button>
+    </section>
   )
 }

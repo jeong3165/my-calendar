@@ -115,6 +115,8 @@ const P: Record<string, ReactNode> = {
   ),
   filter: <path d="M3 5h18l-7 8v6l-4 2v-8z" />,
   sort: <path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4" />,
+  folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+  checklist: <path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17M11 6h10M11 12h10M11 18h10" />,
   sparkle: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />,
   image: (
     <>
@@ -215,7 +217,7 @@ export function ItemChip({
   const solid = item.type === 'event' && !timed
   return (
     <div
-      draggable={!item.readonly}
+      draggable={!item.readonly && item.type !== 'project'}
       onDragStart={(e) => {
         e.dataTransfer.setData('application/x-item', item.id)
         e.dataTransfer.effectAllowed = 'move'
@@ -231,13 +233,18 @@ export function ItemChip({
       } ${solid ? '' : 'hover:bg-hover'}`}
       style={solid ? colorVars(item.color) : undefined}
     >
-      {item.type === 'task' ? (
+      {item.type === 'project' ? (
+        <span className="shrink-0 text-[12px]">{item.icon ?? '📁'}</span>
+      ) : item.type === 'task' ? (
         <Checkbox checked={!!item.done} onChange={() => toggleDone(item)} size={13} />
       ) : (
         !solid && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: `var(--c-${item.color}-bar)` }} />
       )}
       {timed && showTime && <span className="tnum shrink-0 text-fg2">{hm(new Date(item.start!))}</span>}
-      <span className={`truncate ${item.done ? 'text-fg3 line-through' : ''} ${solid ? 'font-medium' : ''}`}>{item.title || '제목 없음'}</span>
+      <span className={`truncate ${item.done ? 'text-fg3 line-through' : ''} ${solid ? 'font-medium' : ''}`}>
+        {item.title || '제목 없음'}
+        {item.type === 'project' && <span className="ml-1 text-fg3">마감</span>}
+      </span>
       {item.occ && <Icon name="repeat" size={11} className="opacity-50" />}
     </div>
   )

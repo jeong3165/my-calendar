@@ -3,6 +3,9 @@ export type NotionColor = (typeof COLORS)[number]
 
 export type Priority = 'high' | 'normal' | 'low'
 
+/** 하위 할 일 */
+export type Subtask = { id: string; title: string; done: boolean }
+
 /** 반복 규칙 (RRULE 의 일부를 단순화) */
 export type Repeat = {
   freq: 'daily' | 'weekly' | 'monthly' | 'yearly'
@@ -24,7 +27,7 @@ export type Repeat = {
  */
 export type Item = {
   id: string
-  type: 'event' | 'task'
+  type: 'event' | 'task' | 'project'
   title: string
   start?: string
   end?: string
@@ -37,6 +40,9 @@ export type Item = {
   tags: string[]
   color: NotionColor
   note?: string
+  projectId?: string // 속한 프로젝트
+  subtasks?: Subtask[] // 하위 할 일 (체크리스트)
+  icon?: string // 프로젝트 아이콘 (이모지)
   repeat?: Repeat
   exdates?: string[] // 반복에서 빠진 날짜 (YYYY-MM-DD)
   doneDates?: string[] // 반복 할 일: 완료한 회차 날짜
@@ -68,7 +74,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export type View = 'month' | 'week' | 'day'
-export type Mode = 'calendar' | 'table' | 'board' | 'day'
+export type Mode = 'calendar' | 'table' | 'board' | 'day' | 'project'
 export type Status = 'todo' | 'doing' | 'done'
 export const STATUS_LABEL: Record<Status, string> = { todo: '할 일', doing: '진행 중', done: '완료' }
 

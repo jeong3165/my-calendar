@@ -8,10 +8,11 @@ export type Filters = {
   type: 'all' | 'event' | 'task'
   tags: string[]
   priorities: Priority[]
+  projects: string[] // 프로젝트 id ('none' = 프로젝트 없음)
   period: Period
   hideDone: boolean
 }
-export const DEFAULT_FILTERS: Filters = { q: '', type: 'all', tags: [], priorities: [], period: 'all', hideDone: false }
+export const DEFAULT_FILTERS: Filters = { q: '', type: 'all', tags: [], priorities: [], projects: [], period: 'all', hideDone: false }
 
 export const PERIOD_LABEL: Record<Period, string> = {
   all: '전체 기간',
@@ -22,5 +23,5 @@ export const PERIOD_LABEL: Record<Period, string> = {
   none: '날짜 없음',
 }
 
-export type SortKey = 'title' | 'type' | 'date' | 'status' | 'priority' | 'tags' | 'updated'
+export type SortKey = 'title' | 'type' | 'date' | 'status' | 'priority' | 'project' | 'tags' | 'updated'
 export type Sort = { key: SortKey; dir: 'asc' | 'desc' }
