@@ -9,14 +9,16 @@ import { subtaskProgress, useProjects, withProject } from '../lib/projects'
 import { SubBadge } from './ProjectView'
 import { resolveItem, updateSmart } from '../lib/recur'
 import { Checkbox, Icon, toggleDone } from './ui'
+import { Resizer } from './Resizer'
 import { fmtWhen, isOverdue, PRIORITY_COLOR, STATUS_COLOR } from './viewUtil'
 
 type Col = { key: string; label: string; color: string; match: (it: Item) => boolean; patch: () => Partial<Item> }
 
 const MAX_DONE = 30
+const DEFAULT_COL = 300
 
 export function BoardView() {
-  const { filters, boardGroup, open, selectedId, showToast } = useUI()
+  const { filters, boardGroup, open, selectedId, showToast, isMobile, boardW, setBoardW } = useUI()
   const items = useItems()
   const projects = useProjects()
   const [over, setOver] = useState<string | null>(null)
@@ -55,7 +57,11 @@ export function BoardView() {
     e.preventDefault()
     setOver(null)
     const it = resolveItem(items, e.dataTransfer.getData('application/x-item'))
-    if (!it || col.match(it)) return
+    if (it) await moveCard(it, col)
+  }
+
+  async function moveCard(it: Item, col: Col) {
+    if (col.match(it)) return
     if (boardGroup === 'status') {
       const err = await setStatus(it, col.key as Status)
       if (err) showToast(err)
@@ -82,8 +88,20 @@ export function BoardView() {
             }}
             onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOver(null)}
             onDrop={(e) => onDrop(e, col)}
-            className={`flex w-[280px] shrink-0 snap-start flex-col rounded-[10px] p-1.5 transition-colors md:w-[300px] ${over === col.key ? 'bg-accent-soft' : 'bg-sidebar'}`}
+            className={`relative flex shrink-0 snap-start flex-col rounded-[10px] p-1.5 transition-colors ${isMobile ? 'w-[85vw]' : ''} ${over === col.key ? 'bg-accent-soft' : 'bg-sidebar'}`}
+            style={isMobile ? undefined : { width: boardW[`${boardGroup}:${col.key}`] ?? DEFAULT_COL }}
           >
+            {!isMobile && (
+              <Resizer
+                edge="right"
+                value={boardW[`${boardGroup}:${col.key}`] ?? DEFAULT_COL}
+                min={200}
+                max={720}
+                onChange={(w) => setBoardW(`${boardGroup}:${col.key}`, w)}
+                onReset={() => setBoardW(`${boardGroup}:${col.key}`, null)}
+                label={`${col.label} 칸 너비`}
+              />
+            )}
             <header className="flex items-center gap-2 px-1.5 pt-1 pb-2">
               <span className="rounded-[4px] px-1.5 py-px text-[13px] font-medium" style={colorVars(col.color as never)}>
                 {col.label}
@@ -92,7 +110,16 @@ export function BoardView() {
             </header>
             <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
               {list.map((it) => (
-                <Card key={it.id} it={it} selected={it.id === selectedId} onOpen={() => open(it.id)} showPriority={boardGroup !== 'priority'} project={boardGroup === 'project' ? undefined : projects.find((p) => p.id === it.projectId)} />
+                <Card
+                  key={it.id}
+                  it={it}
+                  selected={it.id === selectedId}
+                  onOpen={() => open(it.id)}
+                  showPriority={boardGroup !== 'priority'}
+                  project={boardGroup === 'project' ? undefined : projects.find((p) => p.id === it.projectId)}
+                  moveTo={cols.filter((c) => c.key !== col.key).map((c) => [c.key, c.label] as [string, string])}
+                  onMove={(key) => moveCard(it, cols.find((c) => c.key === key)!)}
+                />
               ))}
               {hidden > 0 && (
                 <button onClick={() => setShowAllDone(true)} className="rounded-[6px] px-2 py-1.5 text-left text-[13px] text-fg2 hover:bg-hover">
@@ -108,7 +135,7 @@ export function BoardView() {
   )
 }
 
-function Card({ it, selected, onOpen, showPriority, project }: { it: Item; selected: boolean; onOpen: () => void; showPriority: boolean; project?: Item }) {
+function Card({ it, selected, onOpen, showPriority, project, moveTo, onMove }: { it: Item; selected: boolean; onOpen: () => void; showPriority: boolean; project?: Item; moveTo: [string, string][]; onMove: (key: string) => void }) {
   const when = fmtWhen(it)
   const sp = subtaskProgress(it)
   return (
@@ -128,6 +155,18 @@ function Card({ it, selected, onOpen, showPriority, project }: { it: Item; selec
           <Checkbox checked={!!it.done} onChange={() => toggleDone(it)} size={14} />
         </span>
         <span className={`min-w-0 flex-1 text-[14px] leading-snug font-medium break-words ${it.done ? 'text-fg3 line-through' : ''}`}>{it.title || '제목 없음'}</span>
+        {/* 터치 화면에서는 끌어다 놓기가 안 되므로 칸 옮기기 버튼 */}
+        <label className="relative hidden h-7 shrink-0 items-center rounded-[6px] px-1.5 text-[12px] text-fg2 pointer-coarse:flex" onClick={(e) => e.stopPropagation()}>
+          옮기기 ▸
+          <select value="" onChange={(e) => e.target.value && onMove(e.target.value)} className="absolute inset-0 opacity-0" aria-label="다른 칸으로 옮기기">
+            <option value="">옮길 칸</option>
+            {moveTo.map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       {(when || it.tags.length > 0 || it.occ || sp || project || (showPriority && it.priority === 'high')) && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1 pl-[22px] text-[12px]">

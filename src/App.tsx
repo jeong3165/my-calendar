@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { mobileQuery, useUI } from './store'
 import { weekDays } from './lib/date'
 import { Sidebar } from './components/Sidebar'
@@ -7,7 +7,6 @@ import { MonthView } from './components/MonthView'
 import { TimeGrid } from './components/TimeGrid'
 import { PeekPanel } from './components/PeekPanel'
 import { CommandPalette } from './components/CommandPalette'
-import { TaskList } from './components/TaskList'
 import { TableView } from './components/TableView'
 import { BoardView } from './components/BoardView'
 import { DayView } from './components/DayView'
@@ -21,6 +20,8 @@ import { SubsAgent } from './components/SubsAgent'
 import { TimerWidget } from './components/TimerWidget'
 import { AssistantDialog } from './components/AssistantDialog'
 import { TemplatesDialog } from './components/TemplatesDialog'
+import { BottomNav, Fab, MobileTasksView, QuickAddSheet } from './components/Mobile'
+import { gesture } from './components/TimeGrid'
 import { startFocus, toggle as toggleTimer, useTimer } from './lib/timer'
 import { resolveItem } from './lib/recur'
 import { db } from './db'
@@ -28,7 +29,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -159,6 +160,58 @@ export default function App() {
     }
   }, [])
 
+  // 휴대폰: 캘린더를 좌우로 쓸어서 이전/다음 (길게 눌러 끄는 중이면 무시)
+  const touch = useRef<{ x: number; y: number; t: number } | null>(null)
+  const swipe = {
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0]
+      touch.current = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, t: Date.now() } : null
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const s = touch.current
+      touch.current = null
+      if (!s || gesture.dragging) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - s.x
+      const dy = t.clientY - s.y
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - s.t < 600) useUI.getState().shift(dx < 0 ? 1 : -1)
+    },
+  }
+
+  // 휴대폰 뒤로가기 버튼으로 열린 창·상세 화면 닫기
+  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt)
+  const pushed = useRef(false)
+  const skipPop = useRef(false)
+  useEffect(() => {
+    if (overlay && !pushed.current) {
+      history.pushState({ overlay: true }, '')
+      pushed.current = true
+    } else if (!overlay && pushed.current) {
+      pushed.current = false
+      skipPop.current = true
+      history.back()
+    }
+  }, [overlay])
+  useEffect(() => {
+    const onPop = () => {
+      if (skipPop.current) return void (skipPop.current = false)
+      if (!pushed.current) return
+      pushed.current = false
+      const ui = useUI.getState()
+      if (ui.scopePrompt) ui.scopePrompt.resolve(null)
+      else if (ui.templates) useUI.setState({ templates: null })
+      else if (ui.assistantOpen) useUI.setState({ assistantOpen: false })
+      else if (ui.importOpen) ui.closeImport()
+      else if (ui.settingsOpen) ui.setSettings(false)
+      else if (ui.paletteOpen) ui.setPalette(false)
+      else if (ui.quickAddOpen) useUI.setState({ quickAddOpen: false })
+      else if (ui.selectedId) ui.close()
+      else if (ui.sidebarOpen) ui.setSidebar(false)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   const uiScale = useUI((s) => s.uiScale)
   useEffect(() => {
     const root = document.getElementById('root')
@@ -176,18 +229,15 @@ export default function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         <Toolbar />
         <div className="flex min-h-0 flex-1 border-t border-line">
-          <div className="flex min-w-0 flex-1 flex-col">
-            {mode === 'habits' ? <HabitsView /> : mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
-            {isMobile && mode === 'calendar' && (
-              <section className="max-h-[38vh] shrink-0 overflow-y-auto border-t border-line bg-sidebar pt-2">
-                <div className="px-3.5 pb-1 text-[12px] font-medium text-fg3">오늘 할 일</div>
-                <TaskList section={{ kind: 'today' }} compact />
-              </section>
-            )}
+          <div className="flex min-w-0 flex-1 flex-col" {...(isMobile && mode === 'calendar' ? swipe : {})}>
+            {mode === 'tasks' ? <MobileTasksView /> : mode === 'habits' ? <HabitsView /> : mode === 'project' ? <ProjectView /> : mode === 'day' ? <DayView /> : mode === 'table' ? <TableView /> : mode === 'board' ? <BoardView /> : view === 'month' ? <MonthView /> : <TimeGrid days={days} />}
           </div>
           {selectedId && <PeekPanel />}
         </div>
+        {isMobile && <BottomNav />}
       </main>
+      {isMobile && !selectedId && <Fab />}
+      {quickAddOpen && <QuickAddSheet />}
       {paletteOpen && <CommandPalette />}
       {importOpen && <ImportDialog />}
       {assistantOpen && <AssistantDialog />}
@@ -204,7 +254,7 @@ export default function App() {
         </div>
       )}
       {toast && (
-        <div role="status" className="fixed bottom-6 left-1/2 z-[95] -translate-x-1/2 rounded-[8px] bg-fg px-4 py-2 text-[14px] text-bg shadow-pop">
+        <div role="status" className={`fixed left-1/2 z-[95] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-[8px] bg-fg px-4 py-2 text-[14px] text-bg shadow-pop ${isMobile ? 'bottom-[calc(76px+env(safe-area-inset-bottom))]' : 'bottom-6'}`}>
           {toast}
         </div>
       )}

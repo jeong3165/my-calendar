@@ -82,25 +82,66 @@ export function TimeGrid({ days }: { days: Date[] }) {
   }
 
   /* ───── 포인터: 빈 칸 드래그 → 새 일정 / 블록 이동 / 길이 조절 ───── */
+  /* 휴대폰(터치): 살짝 밀면 스크롤, 0.4초 길게 누르면 끌기 시작, 짧게 누르면 열기/만들기 */
+  const pend = useRef<{ timer: number; x: number; y: number; tap: () => void } | null>(null)
+  function holdToStart(e: RPE, begin: () => void, tap: () => void) {
+    const pointerId = e.pointerId
+    const timer = window.setTimeout(() => {
+      pend.current = null
+      try {
+        colsRef.current!.setPointerCapture(pointerId)
+      } catch {
+        return // 이미 손을 뗐음
+      }
+      gesture.dragging = true
+      navigator.vibrate?.(15)
+      begin()
+    }, 400)
+    pend.current = { timer, x: e.clientX, y: e.clientY, tap }
+  }
+
+  async function tapCreate(day: number, min: number) {
+    const a = Math.floor(min / 30) * 30
+    const it = await createItem({ type: 'event', start: atMinutes(days[day], a).toISOString(), end: atMinutes(days[day], Math.min(a + 60, 1440)).toISOString() })
+    open(it.id, true)
+  }
+
   function onGridDown(e: RPE<HTMLDivElement>) {
     if (e.button !== 0) return
     const p = pos(e.clientX, e.clientY)
     const anchor = floorSnap(p.min)
+    const begin = () => setDrag({ kind: 'create', day: p.day, anchor, cur: anchor + SNAP, x0: e.clientX, y0: e.clientY, moved: false })
+    if (e.pointerType === 'touch') return holdToStart(e, begin, () => void tapCreate(p.day, p.min))
     colsRef.current!.setPointerCapture(e.pointerId)
-    setDrag({ kind: 'create', day: p.day, anchor, cur: anchor + SNAP, x0: e.clientX, y0: e.clientY, moved: false })
+    begin()
   }
 
   function onBlockDown(e: RPE, item: Item, mode: 'move' | 'resize') {
     if (e.button !== 0) return
     e.stopPropagation()
     if (item.readonly) return open(item.id) // 구독 일정은 옮길 수 없음
-    colsRef.current!.setPointerCapture(e.pointerId)
     const p = pos(e.clientX, e.clientY)
-    if (mode === 'move') setDrag({ kind: 'move', item, day0: p.day, min0: p.min, dDay: 0, dMin: 0, x0: e.clientX, y0: e.clientY, moved: false })
-    else setDrag({ kind: 'resize', item, endDay: p.day, endMin: snap(p.min) })
+    const begin = () =>
+      mode === 'move'
+        ? setDrag({ kind: 'move', item, day0: p.day, min0: p.min, dDay: 0, dMin: 0, x0: e.clientX, y0: e.clientY, moved: false })
+        : setDrag({ kind: 'resize', item, endDay: p.day, endMin: snap(p.min) })
+    if (e.pointerType === 'touch') return holdToStart(e, begin, () => open(item.id))
+    colsRef.current!.setPointerCapture(e.pointerId)
+    begin()
   }
 
+  // 끌기 중에는 화면이 스크롤되지 않게 막는다 (터치)
+  useEffect(() => {
+    const block = (e: TouchEvent) => gesture.dragging && e.preventDefault()
+    document.addEventListener('touchmove', block, { passive: false })
+    return () => document.removeEventListener('touchmove', block)
+  }, [])
+
   function onMove(e: RPE) {
+    if (pend.current && Math.abs(e.clientX - pend.current.x) + Math.abs(e.clientY - pend.current.y) > 8) {
+      clearTimeout(pend.current.timer) // 길게 누르기 전에 움직임 → 스크롤
+      pend.current = null
+    }
     if (!drag) return
     const p = pos(e.clientX, e.clientY)
     const moved = Math.abs(e.clientX - (drag as { x0?: number }).x0!) + Math.abs(e.clientY - (drag as { y0?: number }).y0!) > 4
@@ -110,6 +151,13 @@ export function TimeGrid({ days }: { days: Date[] }) {
   }
 
   async function onUp() {
+    if (pend.current) {
+      clearTimeout(pend.current.timer)
+      const tap = pend.current.tap
+      pend.current = null
+      return tap()
+    }
+    gesture.dragging = false
     const d = drag
     setDrag(null)
     if (!d) return
@@ -258,7 +306,12 @@ export function TimeGrid({ days }: { days: Date[] }) {
             onPointerDown={onGridDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
-            onPointerCancel={() => setDrag(null)}
+            onPointerCancel={() => {
+              if (pend.current) clearTimeout(pend.current.timer)
+              pend.current = null
+              gesture.dragging = false
+              setDrag(null)
+            }}
             onDragOver={onDragOver}
             onDragLeave={(e) => {
               if (!colsRef.current?.contains(e.relatedTarget as Node)) setDropAt(null)
@@ -312,7 +365,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                             {hm(new Date(it.start!))} – {hm(new Date(it.end!))}
                           </div>
                         )}
-                        {!it.readonly && <div className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize" onPointerDown={(e) => onBlockDown(e, it, 'resize')} />}
+                        {!it.readonly && <div className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize pointer-coarse:h-3" onPointerDown={(e) => onBlockDown(e, it, 'resize')} />}
                       </div>
                     )
                   })}
@@ -357,6 +410,9 @@ export function TimeGrid({ days }: { days: Date[] }) {
     </div>
   )
 }
+
+/** 지금 손가락으로 끄는 중인지 (화면 쓸어넘기기와 구분) */
+export const gesture = { dragging: false }
 
 const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 

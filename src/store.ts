@@ -43,13 +43,16 @@ type UI = {
   daySub: 'plan' | 'review' | 'week'
   timerPanel: boolean
   assistantOpen: boolean
+  quickAddOpen: boolean
   templates: TemplatesView | null
   // 화면 크기 조절 (이 브라우저에 기억)
   sidebarW: number
   peekW: number
   uiScale: number
   hourH: number
+  boardW: Record<string, number> // 보드 칸별 너비
   setLayout: (p: Partial<Layout>) => void
+  setBoardW: (key: string, w: number | null) => void
   projectId: string | null
   openProject: (id: string) => void
   dayDate: Date
@@ -105,9 +108,9 @@ async function discardIfEmptyDraft(draftId: string | null) {
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
-type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number }
+type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number; boardW: Record<string, number> }
 const LAYOUT_KEY = 'my-calendar.layout'
-export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48 }
+export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48, boardW: {} }
 function loadLayout(): Partial<Layout> {
   try {
     return JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? '{}')
@@ -131,14 +134,21 @@ export const useUI = create<UI>((set, get) => ({
   dayDate: new Date(),
   timerPanel: false,
   assistantOpen: false,
+  quickAddOpen: false,
   templates: null,
   ...LAYOUT_DEFAULT,
   ...loadLayout(),
+  setBoardW: (key, w) => {
+    const next = { ...get().boardW }
+    if (w === null) delete next[key]
+    else next[key] = w
+    get().setLayout({ boardW: next })
+  },
   setLayout: (patch) => {
     set(patch)
-    const { sidebarW, peekW, uiScale, hourH } = get()
+    const { sidebarW, peekW, uiScale, hourH, boardW } = get()
     try {
-      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH }))
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH, boardW }))
     } catch {
       /* ignore */
     }

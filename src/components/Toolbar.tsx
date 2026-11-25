@@ -46,7 +46,9 @@ export function Toolbar() {
       ? title(view, date)
       : mode === 'table'
         ? { main: '모든 항목', sub: '일정과 할 일을 표로' }
-        : mode === 'habits'
+        : mode === 'tasks'
+          ? { main: '할 일', sub: '' }
+          : mode === 'habits'
           ? { main: '습관', sub: '반복 할 일의 연속 기록' }
           : mode === 'project'
           ? { main: '프로젝트', sub: '할 일을 묶어서 관리' }
@@ -91,23 +93,23 @@ export function Toolbar() {
             className="flex h-8 items-center gap-1.5 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover"
             title="스크린샷·사진·파일에서 일정 가져오기 (I) — 캡처 후 Ctrl/⌘+V 도 돼요"
           >
-            <Icon name="sparkle" size={15} className="text-accent" />
+            <Icon name="image" size={15} className="text-accent" />
             <span className="hidden lg:inline">캡처로 추가</span>
           </button>
-          <button
+          {!isMobile && <button
             onClick={() => (mode === 'calendar' ? newEvent() : newTask())}
             className="flex h-8 items-center gap-1 rounded-[6px] bg-accent px-3 text-[13px] font-medium text-white hover:brightness-110"
             title={mode === 'calendar' ? '새 일정 (N)' : '새 할 일'}
           >
             <Icon name="plus" size={15} />
             <span className="hidden sm:inline">{mode === 'calendar' ? '새 일정' : '새 할 일'}</span>
-          </button>
+          </button>}
         </div>
       </div>
 
       {/* 노션식 보기 탭 + 보기별 도구 */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line pb-1.5">
-        <div className="flex gap-0.5" role="tablist" aria-label="보기">
+        <div className={`gap-0.5 ${isMobile ? 'hidden' : 'flex'}`} role="tablist" aria-label="보기">
           {MODES.map(({ m, label, icon, key }) => (
             <button
               key={m}
@@ -152,7 +154,7 @@ export function Toolbar() {
                 ))}
               </div>
             </>
-          ) : mode === 'project' || mode === 'habits' ? null : mode === 'day' ? (
+          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
                 <>
@@ -196,12 +198,14 @@ export function Toolbar() {
 function TimerButton() {
   const t = useTimer()
   const active = t.phase !== 'idle'
+  const isMobile = useUI((s) => s.isMobile)
   const [, force] = useState(0)
   useEffect(() => {
     if (!active || !t.running) return
     const id = setInterval(() => force((n) => n + 1), 1000)
     return () => clearInterval(id)
   }, [active, t.running])
+  if (isMobile && !active) return null // 휴대폰에서는 돌 때만
   return (
     <button
       onClick={() => useUI.setState((s) => ({ timerPanel: !s.timerPanel }))}
