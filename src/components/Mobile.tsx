@@ -30,9 +30,9 @@ export function BottomNav() {
             key={t.m}
             onClick={() => setMode(t.m)}
             aria-current={on ? 'page' : undefined}
-            className={`flex min-h-[54px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${on ? 'font-semibold text-accent' : 'text-fg2'}`}
+            className={`flex min-h-[50px] flex-1 flex-col items-center justify-center gap-[1px] text-[10.5px] ${on ? 'font-semibold text-accent' : 'text-fg2'}`}
           >
-            <Icon name={t.icon} size={22} />
+            <Icon name={t.icon} size={20} />
             {t.label}
           </button>
         )
@@ -49,9 +49,9 @@ export function Fab() {
     <button
       onClick={() => useUI.setState({ quickAddOpen: true })}
       aria-label="빠르게 추가"
-      className="fixed right-4 bottom-[calc(70px+env(safe-area-inset-bottom))] z-40 grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_6px_20px_rgba(35,131,226,0.45)] active:scale-95"
+      className="fixed right-3.5 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 grid h-[52px] w-[52px] place-items-center rounded-full bg-accent text-white shadow-[0_6px_20px_rgba(35,131,226,0.45)] active:scale-95"
     >
-      <Icon name="plus" size={26} />
+      <Icon name="plus" size={24} />
     </button>
   )
 }
@@ -134,6 +134,20 @@ export function QuickAddSheet() {
             {p.project && <Chip>📁 {p.project}</Chip>}
           </div>
         )}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button onClick={() => useUI.setState({ quickAddOpen: false, assistantOpen: true })} className="flex h-11 items-center justify-center gap-1.5 rounded-[10px] bg-hover text-[14px] whitespace-nowrap max-[360px]:text-[13px]">
+            <Icon name="sparkle" size={16} className="text-[var(--c-purple-bar)]" /> AI 비서
+          </button>
+          <button
+            onClick={() => {
+              useUI.setState({ quickAddOpen: false })
+              useUI.getState().openImport()
+            }}
+            className="flex h-11 items-center justify-center gap-1.5 rounded-[10px] bg-hover text-[14px] whitespace-nowrap max-[360px]:text-[13px]"
+          >
+            <Icon name="image" size={16} className="text-accent" /> 사진·캡처로 추가
+          </button>
+        </div>
         <p className="mt-2 text-[12px] text-fg3">연달아 입력할 수 있어요. 바깥을 누르면 닫혀요.</p>
       </div>
     </div>

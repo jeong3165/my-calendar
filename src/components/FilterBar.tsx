@@ -22,7 +22,7 @@ const chip = (on: boolean) => `rounded-[4px] px-2 py-0.5 text-[13px] ${on ? 'bg-
 
 /** 표·보드 위의 검색 / 필터 / 정렬(표) / 그룹(보드) */
 export function FilterBar() {
-  const { mode, filters: f, setFilters, resetFilters, sort, setSort, boardGroup, setBoardGroup } = useUI()
+  const { mode, filters: f, setFilters, resetFilters, sort, setSort, boardGroup, setBoardGroup, isMobile } = useUI()
   const items = useItems()
   const tags = useMemo(() => allTags(items), [items])
   const projects = useProjects()
@@ -43,27 +43,27 @@ export function FilterBar() {
 
   return (
     <>
-      <label className="flex h-7 items-center gap-1.5 rounded-[6px] px-2 text-fg3 focus-within:bg-hover hover:bg-hover">
+      <label className="flex h-7 shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-fg3 focus-within:bg-hover hover:bg-hover">
         <Icon name="search" size={14} />
         <input
           value={f.q}
           onChange={(e) => setFilters({ q: e.target.value })}
           placeholder="검색"
-          className="w-24 bg-transparent text-[13px] text-fg outline-none focus:w-36 sm:w-28"
+          className="w-24 bg-transparent text-[13px] text-fg outline-none focus:w-36 max-md:w-14 max-md:focus:w-28 sm:w-28"
         />
       </label>
 
-      <div ref={box} className="relative">
+      <div ref={box} className="relative shrink-0">
         <button
           onClick={() => setOpen(!open)}
-          className={`flex h-7 items-center gap-1 rounded-[6px] px-2 text-[13px] ${active ? 'bg-accent-soft font-medium text-accent' : 'text-fg2 hover:bg-hover'}`}
+          className={`flex h-7 items-center gap-1 whitespace-nowrap rounded-[6px] px-2 text-[13px] ${active ? 'bg-accent-soft font-medium text-accent' : 'text-fg2 hover:bg-hover'}`}
           aria-expanded={open}
         >
           <Icon name="filter" size={14} />
           필터{count > 0 && ` ${count}`}
         </button>
         {open && (
-          <div className="shadow-pop absolute right-0 z-40 mt-1 flex w-[300px] flex-col gap-3 rounded-[10px] bg-popover p-3 text-[13px]">
+          <div className="shadow-pop absolute right-0 z-40 mt-1 flex w-[300px] max-md:fixed max-md:inset-x-3 max-md:top-24 max-md:w-auto flex-col gap-3 rounded-[10px] bg-popover p-3 text-[13px]">
             {mode === 'table' && (
               <Section label="유형">
                 {(
@@ -131,7 +131,7 @@ export function FilterBar() {
 
       {mode === 'table' ? (
         <div className="flex items-center">
-          <label className="flex h-7 items-center gap-1 rounded-[6px] px-1.5 text-[13px] text-fg2 hover:bg-hover">
+          <label className="flex h-7 shrink-0 items-center gap-1 rounded-[6px] px-1.5 text-[13px] text-fg2 hover:bg-hover">
             <Icon name="sort" size={14} />
             <select value={sort.key} onChange={(e) => setSort({ ...sort, key: e.target.value as SortKey })} className="bg-transparent outline-none" aria-label="정렬 기준">
               {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
@@ -150,12 +150,12 @@ export function FilterBar() {
           </button>
         </div>
       ) : (
-        <div className="flex rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="그룹 기준">
+        <div className="flex shrink-0 rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="그룹 기준">
           {(
             [
-              ['status', '상태별'],
-              ['priority', '우선순위별'],
-              ['project', '프로젝트별'],
+              ['status', isMobile ? '상태' : '상태별'],
+              ['priority', isMobile ? '우선순위' : '우선순위별'],
+              ['project', isMobile ? '프로젝트' : '프로젝트별'],
             ] as const
           ).map(([g, l]) => (
             <button
@@ -163,7 +163,7 @@ export function FilterBar() {
               role="tab"
               aria-selected={boardGroup === g}
               onClick={() => setBoardGroup(g)}
-              className={`h-6 rounded-[5px] px-2.5 text-[13px] ${boardGroup === g ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
+              className={`h-6 shrink-0 whitespace-nowrap rounded-[5px] px-2.5 text-[13px] max-md:px-2 ${boardGroup === g ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
             >
               {l}
             </button>

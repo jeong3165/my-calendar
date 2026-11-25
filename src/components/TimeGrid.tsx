@@ -232,7 +232,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* 요일 헤더 */}
       <div className="flex border-b border-line [scrollbar-gutter:stable] overflow-y-hidden">
-        <div className="w-16 shrink-0" />
+        <div className="w-16 shrink-0 max-md:w-11" />
         <div className="grid flex-1" style={{ gridTemplateColumns: cols }}>
           {days.map((d) => {
             const today = isToday(d)
@@ -243,7 +243,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
                   setDate(d)
                   setView('day')
                 }}
-                className="flex items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover"
+                className="flex items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1"
               >
                 <span className={today ? 'text-accent' : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
                 <span
@@ -259,7 +259,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
 
       {/* 종일 영역 */}
       <div className="flex border-b border-line [scrollbar-gutter:stable] overflow-y-hidden">
-        <div className="flex w-16 shrink-0 items-start justify-end pt-1.5 pr-2 text-[11px] text-fg3">종일</div>
+        <div className="flex w-16 shrink-0 items-start justify-end pt-1.5 pr-2 text-[11px] text-fg3 max-md:w-11 max-md:pr-1.5 max-md:text-[10px]">종일</div>
         <div className="grid flex-1" style={{ gridTemplateColumns: cols }}>
           {days.map((d, i) => (
             <div
@@ -288,10 +288,11 @@ export function TimeGrid({ days }: { days: Date[] }) {
       {/* 시간 그리드 */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         <div className="flex" style={{ height: 24 * H }}>
-          <div className="relative w-16 shrink-0">
+          <div className="relative w-16 shrink-0 max-md:w-11">
             {Array.from({ length: 23 }, (_, i) => i + 1).map((h) => (
               <div key={h} className="tnum absolute right-2 -translate-y-1/2 text-[11px] whitespace-nowrap text-fg3" style={{ top: h * H }}>
-                {h < 12 ? `오전 ${h}시` : h === 12 ? '오후 12시' : `오후 ${h - 12}시`}
+                <span className="max-md:hidden">{h < 12 ? `오전 ${h}시` : h === 12 ? '오후 12시' : `오후 ${h - 12}시`}</span>
+                <span className="text-[10px] md:hidden">{h < 12 ? `오전 ${h}` : `오후 ${h === 12 ? 12 : h - 12}`}</span>
               </div>
             ))}
           </div>

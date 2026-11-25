@@ -24,7 +24,8 @@ const NAV: { s: Section; icon: IconName }[] = [
 const same = (a: Section, b: Section) => a.kind === b.kind && (a.kind !== 'tag' || (b.kind === 'tag' && a.tag === b.tag))
 
 export function Sidebar() {
-  const { section, setSection, toggleSidebar, setPalette, isMobile, sidebarOpen, setSidebar, setSettings, sidebarW, setLayout } = useUI()
+  const { section, setSection, toggleSidebar, setPalette, isMobile, sidebarOpen, setSidebar, setSettings, sidebarW, setLayout, screen } = useUI()
+  const overlay = screen !== 'desktop' // 좁은 화면에서는 캘린더 위에 겹쳐서
   const items = useItems()
   const tags = useMemo(() => allTags(items), [items])
   const fileRef = useRef<HTMLInputElement>(null)
@@ -35,8 +36,8 @@ export function Sidebar() {
 
   const body = (
     <aside
-      className={`relative flex h-full shrink-0 flex-col border-r border-line bg-sidebar ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-[280px] shadow-pop' : ''}`}
-      style={isMobile ? undefined : { width: sidebarW }}
+      className={`flex h-full shrink-0 flex-col border-r border-line bg-sidebar ${overlay ? 'fixed inset-y-0 left-0 z-50 shadow-pop' : 'relative'}`}
+      style={{ width: isMobile ? 'min(85vw, 320px)' : sidebarW }}
       aria-label="사이드바"
     >
       {/* 워크스페이스 */}
@@ -147,7 +148,7 @@ export function Sidebar() {
     </aside>
   )
 
-  if (!isMobile) return body
+  if (!overlay) return body
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setSidebar(false)} />

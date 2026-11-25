@@ -49,7 +49,7 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
       <div className="mx-auto max-w-[860px] pt-4">
         {/* 아이콘 + 제목 */}
         <div className="relative">
-          <button onClick={() => setIconOpen(!iconOpen)} className="rounded-[8px] p-1 text-[44px] leading-none hover:bg-hover" title="아이콘 바꾸기">
+          <button onClick={() => setIconOpen(!iconOpen)} className="rounded-[8px] p-1 text-[44px] leading-none hover:bg-hover max-md:text-[34px]" title="아이콘 바꾸기">
             {p.icon ?? '📁'}
           </button>
           {iconOpen && (
@@ -77,7 +77,7 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
             void set({ title: e.target.value })
           }}
           placeholder="프로젝트 이름"
-          className={`mt-2 w-full bg-transparent text-[32px] leading-tight font-bold tracking-[-0.01em] outline-none ${p.done ? 'text-fg3' : ''}`}
+          className={`mt-2 w-full bg-transparent text-[32px] max-md:text-[24px] leading-tight font-bold tracking-[-0.01em] outline-none ${p.done ? 'text-fg3' : ''}`}
         />
 
         {/* 속성 */}

@@ -58,7 +58,7 @@ export function TimerWidget() {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="shadow-pop tnum fixed right-4 bottom-4 z-[60] max-md:bottom-[calc(70px+env(safe-area-inset-bottom))] flex items-center gap-2 rounded-full bg-popover px-3.5 py-2 text-[14px] font-semibold"
+        className="shadow-pop tnum fixed right-4 bottom-4 z-[60] max-md:bottom-[calc(64px+env(safe-area-inset-bottom))] flex items-center gap-2 rounded-full bg-popover px-3.5 py-2 text-[14px] font-semibold"
         title="타이머 펼치기"
       >
         <span className={`h-2 w-2 rounded-full ${t.running ? 'animate-pulse' : ''}`} style={{ background: isBreak ? 'var(--c-green-bar)' : 'var(--danger)' }} />
@@ -67,7 +67,7 @@ export function TimerWidget() {
     )
 
   return (
-    <section aria-label="집중 타이머" className="shadow-pop fixed right-4 bottom-4 z-[60] max-md:bottom-[calc(70px+env(safe-area-inset-bottom))] w-[300px] max-w-[calc(100vw-32px)] rounded-[12px] bg-popover p-3.5">
+    <section aria-label="집중 타이머" className="shadow-pop fixed right-4 bottom-4 z-[60] max-md:bottom-[calc(64px+env(safe-area-inset-bottom))] w-[300px] max-w-[calc(100vw-32px)] rounded-[12px] bg-popover p-3.5">
       <header className="flex items-center gap-2">
         <span className="rounded-[4px] px-1.5 py-px text-[12px] font-medium" style={{ background: `var(--c-${isBreak ? 'green' : active ? 'red' : 'gray'}-bg)`, color: `var(--c-${isBreak ? 'green' : active ? 'red' : 'gray'}-text)` }}>
           {isBreak ? t.title : active ? '집중' : '집중 타이머'}

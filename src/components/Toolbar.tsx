@@ -39,7 +39,7 @@ const DAY_SUBS = [
 ] as const
 
 export function Toolbar() {
-  const { mode, setMode, view, date, setView, shift, goToday, sidebarOpen, toggleSidebar, newEvent, isMobile, openImport, open, daySub, setDaySub, dayDate, setDayDate } = useUI()
+  const { mode, setMode, view, date, sidebarOpen, toggleSidebar, newEvent, isMobile, openImport, open, daySub, setDaySub, dayDate, setDayDate, screen } = useUI()
   const weekStart = startOfWeek(dayDate, { weekStartsOn: 1 })
   const t =
     mode === 'calendar'
@@ -67,18 +67,19 @@ export function Toolbar() {
   }
 
   return (
-    <header className="flex flex-col gap-2 px-4 pt-4 pb-2 md:px-6 md:pt-6">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {(!sidebarOpen || isMobile) && (
-          <button onClick={toggleSidebar} className="grid h-8 w-8 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="사이드바 열기">
-            <Icon name={isMobile ? 'menu' : 'sidebar'} size={18} />
+    <header className={isMobile ? 'flex flex-col gap-1.5 border-b border-line px-2 pt-[max(6px,env(safe-area-inset-top))] pb-1.5' : 'flex flex-col gap-2 px-4 pt-4 pb-2 md:px-6 md:pt-6'}>
+      <div className={isMobile ? 'flex items-center gap-1' : 'flex flex-wrap items-center gap-x-3 gap-y-2'}>
+        {(!sidebarOpen || isMobile || screen !== 'desktop') && (
+          <button onClick={toggleSidebar} className={`grid place-items-center rounded-[6px] text-fg2 hover:bg-hover ${isMobile ? 'h-9 w-9' : 'h-8 w-8'}`} aria-label="사이드바 열기">
+            <Icon name={screen === 'desktop' ? 'sidebar' : 'menu'} size={isMobile ? 20 : 18} />
           </button>
         )}
-        <div className="flex min-w-0 items-baseline gap-2.5">
-          <h1 className="truncate text-[24px] leading-tight font-bold tracking-[-0.01em] md:text-[32px]">{t.main}</h1>
-          <span className="hidden text-[13px] whitespace-nowrap text-fg2 sm:inline md:text-[14px]">{t.sub}</span>
+        <div className={`flex min-w-0 items-baseline gap-2.5 ${isMobile ? 'flex-1' : ''}`}>
+          <h1 className={`truncate leading-tight font-bold tracking-[-0.01em] ${isMobile ? 'text-[19px]' : 'text-[24px] md:text-[32px]'}`}>{t.main}</h1>
+          {!isMobile && <span className="hidden text-[13px] whitespace-nowrap text-fg2 sm:inline md:text-[14px]">{t.sub}</span>}
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
+        {isMobile && mode === 'calendar' && <CalNav compact />}
+        <div className={`ml-auto flex items-center gap-1.5 ${isMobile ? 'hidden' : ''}`}>
           <TimerButton />
           <button
             onClick={() => useUI.setState({ assistantOpen: true })}
@@ -107,8 +108,10 @@ export function Toolbar() {
         </div>
       </div>
 
-      {/* 노션식 보기 탭 + 보기별 도구 */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line pb-1.5">
+      {/* 노션식 보기 탭 + 보기별 도구 (휴대폰에서 캘린더는 위 한 줄에 다 들어감) */}
+      {isMobile && <TimerButton />}
+      {!(isMobile && ['calendar', 'project', 'habits', 'tasks'].includes(mode)) && (
+      <div className={isMobile ? 'flex flex-wrap items-center gap-1.5 [&_button]:text-[12px]' : 'flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line pb-1.5'}>
         <div className={`gap-0.5 ${isMobile ? 'hidden' : 'flex'}`} role="tablist" aria-label="보기">
           {MODES.map(({ m, label, icon, key }) => (
             <button
@@ -125,35 +128,9 @@ export function Toolbar() {
           ))}
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <div className={isMobile ? 'flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto' : 'ml-auto flex flex-wrap items-center gap-1.5'}>
           {mode === 'calendar' ? (
-            <>
-              <button onClick={goToday} className="h-7 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover" title="오늘 (.)">
-                오늘
-              </button>
-              <div className="flex">
-                <button onClick={() => shift(-1)} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="이전" title="이전 (←)">
-                  <Icon name="left" size={17} />
-                </button>
-                <button onClick={() => shift(1)} className="grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="다음" title="다음 (→)">
-                  <Icon name="right" size={17} />
-                </button>
-              </div>
-              <div className="flex rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="캘린더 범위">
-                {VIEWS.map(({ v, label, key }) => (
-                  <button
-                    key={v}
-                    role="tab"
-                    aria-selected={view === v}
-                    title={`${label} 보기 (${key})`}
-                    onClick={() => setView(v)}
-                    className={`h-6 rounded-[5px] px-2.5 text-[13px] transition-colors ${view === v ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </>
+            <CalNav />
           ) : mode === 'project' || mode === 'habits' || mode === 'tasks' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
@@ -190,6 +167,7 @@ export function Toolbar() {
           )}
         </div>
       </div>
+      )}
     </header>
   )
 }
@@ -215,5 +193,47 @@ function TimerButton() {
       <Icon name="clock" size={15} />
       {active ? fmtClock(remainingMs(t)) : <span className="hidden lg:inline">집중</span>}
     </button>
+  )
+}
+
+/** 캘린더 이동: 오늘 · ‹ › · 월/주/일 (compact = 휴대폰 한 줄용) */
+function CalNav({ compact = false }: { compact?: boolean }) {
+  const { view, setView, shift, goToday } = useUI()
+  const h = compact ? 'h-8' : 'h-7'
+  return (
+    <div className={`flex items-center ${compact ? 'gap-0.5' : 'gap-1.5'}`}>
+      {!compact && (
+        <button onClick={goToday} className={`${h} rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover`} title="오늘 (.)">
+          오늘
+        </button>
+      )}
+      <div className="flex items-center">
+        <button onClick={() => shift(-1)} className={`grid ${h} w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover`} aria-label="이전" title="이전 (←)">
+          <Icon name="left" size={17} />
+        </button>
+        {compact && (
+          <button onClick={goToday} className={`${h} rounded-[6px] px-1.5 text-[13px] font-medium text-accent`} title="오늘">
+            오늘
+          </button>
+        )}
+        <button onClick={() => shift(1)} className={`grid ${h} w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover`} aria-label="다음" title="다음 (→)">
+          <Icon name="right" size={17} />
+        </button>
+      </div>
+      <div className="flex rounded-[6px] bg-hover p-0.5" role="tablist" aria-label="캘린더 범위">
+        {VIEWS.map(({ v, label, key }) => (
+          <button
+            key={v}
+            role="tab"
+            aria-selected={view === v}
+            title={`${label} 보기 (${key})`}
+            onClick={() => setView(v)}
+            className={`rounded-[5px] text-[13px] transition-colors ${compact ? 'h-7 px-2' : 'h-6 px-2.5'} ${view === v ? 'bg-bg font-medium text-fg shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2 hover:text-fg'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

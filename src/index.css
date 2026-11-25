@@ -131,12 +131,6 @@ input[type="datetime-local"] {
 
 /* ───────── 터치 화면(휴대폰·태블릿) ───────── */
 @media (pointer: coarse) {
-  /* iOS 에서 입력칸을 누르면 화면이 확대되는 것 방지 (16px 이상) */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-  textarea,
-  select {
-    font-size: max(16px, 1em);
-  }
   /* 손가락으로 누르기 쉽게: 체크박스 주변까지 눌리도록 */
   [role="checkbox"] {
     position: relative;

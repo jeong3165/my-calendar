@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { mobileQuery, useUI } from './store'
+import { mobileQuery, screenNow, useUI } from './store'
 import { weekDays } from './lib/date'
 import { Sidebar } from './components/Sidebar'
 import { Toolbar } from './components/Toolbar'
@@ -37,10 +37,14 @@ export default function App() {
     const mq = window.matchMedia(mobileQuery)
     const on = () => {
       setMobile(mq.matches)
-      if (mq.matches) useUI.setState({ sidebarOpen: false })
+      const prev = useUI.getState().screen
+      const screen = screenNow()
+      if (screen === prev) return
+      // 넓은 화면으로 바뀌면 사이드바를 펼치고, 좁아지면 접는다
+      useUI.setState({ screen, sidebarOpen: screen === 'desktop' })
     }
-    mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
   }, [setMobile])
 
   // 전역 단축키 (한글 자판에서도 동작하도록 e.code 사용)
@@ -254,7 +258,7 @@ export default function App() {
         </div>
       )}
       {toast && (
-        <div role="status" className={`fixed left-1/2 z-[95] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-[8px] bg-fg px-4 py-2 text-[14px] text-bg shadow-pop ${isMobile ? 'bottom-[calc(76px+env(safe-area-inset-bottom))]' : 'bottom-6'}`}>
+        <div role="status" className={`fixed left-1/2 z-[95] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-[8px] bg-fg px-4 py-2 text-[14px] text-bg shadow-pop ${isMobile ? 'bottom-[calc(124px+env(safe-area-inset-bottom))]' : 'bottom-6'}`}>
           {toast}
         </div>
       )}

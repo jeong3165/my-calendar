@@ -10,6 +10,9 @@ type SettingsTab = 'ai' | 'sync' | 'notify' | 'subs' | 'display'
 
 const mobileQuery = '(max-width: 767px)'
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia(mobileQuery).matches
+/** 화면 폭 단계: 휴대폰(<768) / 태블릿·좁은 창(<1200, 패널을 겹쳐 띄움) / 넓은 화면 */
+export type Screen = 'phone' | 'tablet' | 'desktop'
+export const screenNow = (): Screen => (typeof window === 'undefined' ? 'desktop' : window.innerWidth < 768 ? 'phone' : window.innerWidth < 1200 ? 'tablet' : 'desktop')
 
 /* 보기 설정은 이 브라우저에 기억 (편의 기능, 실패해도 무방) */
 const PREFS = 'my-calendar.view-prefs'
@@ -81,6 +84,7 @@ type UI = {
   setSection: (s: Section) => void
   focusQuickAdd: () => void
   setMobile: (m: boolean) => void
+  screen: Screen
   newEvent: (at?: Date) => Promise<Item>
 
   // 이미지·파일에서 일정 가져오기
@@ -157,7 +161,7 @@ export const useUI = create<UI>((set, get) => ({
   openProject: (projectId) => {
     const { draftId, selectedId } = get()
     if (draftId && draftId === selectedId) void discardIfEmptyDraft(draftId)
-    set({ mode: 'project', projectId, selectedId: null, draftId: null, ...(isMobileNow() ? { sidebarOpen: false } : {}) })
+    set({ mode: 'project', projectId, selectedId: null, draftId: null, ...(screenNow() !== 'desktop' ? { sidebarOpen: false } : {}) })
   },
   setDaySub: (daySub) => set({ daySub }),
   setDayDate: (dayDate) => set({ dayDate }),
@@ -170,7 +174,8 @@ export const useUI = create<UI>((set, get) => ({
   date: new Date(),
   selectedId: null,
   draftId: null,
-  sidebarOpen: !isMobileNow(),
+  sidebarOpen: screenNow() === 'desktop',
+  screen: screenNow(),
   paletteOpen: false,
   section: { kind: 'today' },
   quickAddTick: 0,

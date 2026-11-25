@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+// 아이폰·아이패드: 입력칸을 누를 때 화면이 자동 확대되지 않게 (손가락으로 벌리는 확대는 그대로 됨)
+if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+  document.querySelector('meta[name=viewport]')?.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover')
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

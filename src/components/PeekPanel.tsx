@@ -18,14 +18,16 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 export function PeekPanel() {
-  const { selectedId, close, isMobile, peekW, setLayout } = useUI()
+  const { selectedId, close, isMobile, peekW, setLayout, screen } = useUI()
   const items = useCalendarItems()
   const item = selectedId ? resolveItem(items, selectedId) : undefined
   if (!item || item.type === 'project' || item.type === 'template') return null // 프로젝트는 프로젝트 페이지에서
   return (
     <aside
-      className={`relative flex min-h-0 flex-col bg-bg ${isMobile ? 'fixed inset-0 z-50' : 'shrink-0 border-l border-line'}`}
-      style={isMobile ? undefined : { width: peekW }}
+      className={`flex min-h-0 flex-col bg-bg ${
+        isMobile ? 'fixed inset-0 z-50 pt-[env(safe-area-inset-top)]' : screen === 'tablet' ? 'fixed inset-y-0 right-0 z-40 border-l border-line shadow-pop' : 'relative shrink-0 border-l border-line'
+      }`}
+      style={isMobile ? undefined : { width: screen === 'tablet' ? `min(${peekW}px, 92vw)` : peekW }}
       aria-label="상세 보기"
     >
       <div className="flex items-center gap-1 px-3 py-2">
@@ -104,7 +106,7 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24 md:px-10">
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24 max-md:px-4 max-md:pt-2 md:px-10">
       <div className="flex items-start gap-3">
         {isTask && (
           <span className="pt-[12px]">
@@ -126,7 +128,7 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
               ;(document.querySelector('[data-note]') as HTMLTextAreaElement | null)?.focus()
             }
           }}
-          className={`w-full resize-none overflow-hidden bg-transparent text-[30px] leading-[1.25] font-bold tracking-[-0.01em] outline-none md:text-[32px] ${item.done ? 'text-fg3 line-through' : ''}`}
+          className={`w-full resize-none overflow-hidden bg-transparent text-[30px] leading-[1.25] font-bold tracking-[-0.01em] outline-none max-md:text-[23px] md:text-[32px] ${item.done ? 'text-fg3 line-through' : ''}`}
         />
       </div>
 
@@ -165,7 +167,7 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
         {view.type === 'event' ? <EventDates item={view} set={set} /> : <TaskDates item={view} set={set} />}
 
         {occ && touchesTime(pending) && (
-          <div className="my-1 ml-[120px] flex flex-wrap items-center gap-2 rounded-[6px] bg-accent-soft px-2.5 py-1.5 text-[13px]">
+          <div className="my-1 ml-[120px] max-md:ml-[88px] flex flex-wrap items-center gap-2 rounded-[6px] bg-accent-soft px-2.5 py-1.5 text-[13px]">
             <span className="flex-1">날짜·시간 변경을 적용할까요?</span>
             <button onClick={() => setPending({})} className="rounded px-2 py-0.5 text-fg2 hover:bg-hover">
               취소
@@ -243,7 +245,7 @@ function PeekBody({ item, allItems }: { item: Item; allItems: Item[] }) {
 function Prop({ icon, label, children }: { icon: IconName; label: string; children: ReactNode }) {
   return (
     <div className="flex min-h-[34px] items-start">
-      <div className="flex w-[120px] shrink-0 items-center gap-1.5 py-[7px] text-[14px] text-fg2">
+      <div className="flex w-[120px] shrink-0 items-center gap-1.5 py-[7px] text-[14px] text-fg2 max-md:w-[88px] max-md:text-[13px]">
         <Icon name={icon} size={15} className="text-fg3" />
         {label}
       </div>
@@ -590,8 +592,8 @@ function ReadonlyBody({ item }: { item: Item }) {
   const { open, showToast } = useUI()
   const note = item.note ?? ''
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24 md:px-10">
-      <h2 className="text-[28px] leading-[1.25] font-bold tracking-[-0.01em] break-words md:text-[30px]">{item.title}</h2>
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-24 max-md:px-4 max-md:pt-2 md:px-10">
+      <h2 className="text-[28px] leading-[1.25] font-bold tracking-[-0.01em] break-words max-md:text-[23px] md:text-[30px]">{item.title}</h2>
       <div className="mt-4 flex flex-col gap-px">
         <Prop icon="calendar" label="캘린더">
           <span className="inline-flex items-center gap-1.5 px-2 py-1 text-[14px]">
