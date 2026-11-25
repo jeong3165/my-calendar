@@ -46,6 +46,7 @@ type UI = {
   daySub: 'plan' | 'review' | 'week'
   timerPanel: boolean
   assistantOpen: boolean
+  briefingOpen: boolean
   quickAddOpen: boolean
   templates: TemplatesView | null
   // 화면 크기 조절 (이 브라우저에 기억)
@@ -138,6 +139,7 @@ export const useUI = create<UI>((set, get) => ({
   dayDate: new Date(),
   timerPanel: false,
   assistantOpen: false,
+  briefingOpen: false,
   quickAddOpen: false,
   templates: null,
   ...LAYOUT_DEFAULT,

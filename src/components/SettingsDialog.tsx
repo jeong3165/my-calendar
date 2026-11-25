@@ -5,6 +5,7 @@ import { loadSync, saveSync, syncNow, testConnection, useSync } from '../lib/syn
 import { Icon } from './ui'
 import { SubsTab } from './SubsTab'
 import { REMIND_ALLDAY, REMIND_TIMED, loadNotify, permission, saveNotify, showSystemNotification } from '../lib/notify'
+import { loadBriefing, saveBriefing } from '../lib/briefing'
 
 export function SettingsDialog() {
   const { setSettings, settingsTab } = useUI()
@@ -13,15 +14,15 @@ export function SettingsDialog() {
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/30 px-4 pt-[8vh]" onMouseDown={() => setSettings(false)}>
       <div role="dialog" aria-label="설정" onMouseDown={(e) => e.stopPropagation()} className="shadow-pop flex max-h-[84vh] w-full max-w-[600px] flex-col rounded-[12px] bg-popover">
-        <div className="flex items-center gap-2 border-b border-line px-5 pt-3">
-          <div className="flex flex-1 gap-1" role="tablist">
+        <div className="flex items-center gap-2 border-b border-line px-5 pt-3 max-md:px-2">
+          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]" role="tablist">
             {(
               [
                 ['display', '화면'],
                 ['sync', 'GitHub 동기화'],
                 ['subs', '구독 캘린더'],
                 ['notify', '알림'],
-                ['ai', 'AI (캡처로 추가)'],
+                ['ai', 'AI'],
               ] as const
             ).map(([k, l]) => (
               <button
@@ -29,13 +30,13 @@ export function SettingsDialog() {
                 role="tab"
                 aria-selected={tab === k}
                 onClick={() => setTab(k)}
-                className={`-mb-px border-b-2 px-2.5 pb-2.5 text-[14px] ${tab === k ? 'border-fg font-semibold' : 'border-transparent text-fg2 hover:text-fg'}`}
+                className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-2.5 pb-2.5 text-[14px] max-md:px-2 max-md:text-[13.5px] ${tab === k ? 'border-fg font-semibold' : 'border-transparent text-fg2 hover:text-fg'}`}
               >
                 {l}
               </button>
             ))}
           </div>
-          <button onClick={() => setSettings(false)} className="mb-2 grid h-7 w-7 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="닫기">
+          <button onClick={() => setSettings(false)} className="mb-2 grid h-7 w-7 shrink-0 place-items-center rounded-[6px] text-fg2 hover:bg-hover" aria-label="닫기">
             <Icon name="x" size={16} />
           </button>
         </div>
@@ -372,6 +373,8 @@ function NotifyTab() {
         테스트 알림 보내기
       </button>
 
+      <BriefingSection />
+
       <ul className="flex list-disc flex-col gap-1 pl-4 text-[12px] leading-relaxed text-fg2">
         <li>
           알림은 <b className="text-fg">앱이 열려 있을 때</b>(창을 최소화하거나 다른 탭에 있어도 됨) 울려요. 완전히 닫혀 있으면 울리지 않아요. Edge의 "앱으로 설치"로 띄워 두면 편해요.
@@ -380,6 +383,74 @@ function NotifyTab() {
         <li>알림 켜기는 기기(브라우저)마다 따로 해야 해요. 휴대폰에서는 "홈 화면에 추가"한 앱으로 열어 두세요.</li>
       </ul>
     </div>
+  )
+}
+
+/* ───────── 아침 브리핑 ───────── */
+function BriefingSection() {
+  const [b, setB] = useState(loadBriefing)
+  const update = (patch: Partial<typeof b>) => {
+    const next = { ...b, ...patch }
+    setB(next)
+    saveBriefing(next)
+  }
+  const hasKey = !!loadSettings().apiKey
+  return (
+    <section className="flex flex-col gap-3 rounded-[10px] border border-line p-3.5">
+      <div className="flex items-center gap-2.5">
+        <span className="text-[20px] leading-none">☀️</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-medium">아침 브리핑</div>
+          <div className="text-[12px] text-fg2">정한 시각에 오늘 일정·할 일·밀린 일·곧 마감을 한눈에 보여 줘요.</div>
+        </div>
+        <button
+          role="switch"
+          aria-checked={b.enabled}
+          aria-label="아침 브리핑"
+          onClick={() => update({ enabled: !b.enabled })}
+          className={`relative h-6 w-10 shrink-0 rounded-full transition-colors ${b.enabled ? 'bg-accent' : 'bg-active'}`}
+        >
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${b.enabled ? 'left-[18px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      <div className={`flex flex-col gap-3 ${b.enabled ? '' : 'pointer-events-none opacity-50'}`}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
+          <label className="flex items-center gap-2">
+            시각
+            <input type="time" value={b.time} onChange={(e) => e.target.value && update({ time: e.target.value })} className="rounded-[8px] border border-line-strong bg-bg px-2 py-1 outline-none focus:border-accent" />
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={b.weekdaysOnly} onChange={(e) => update({ weekdaysOnly: e.target.checked })} className="accent-[var(--accent)]" />
+            평일만 (주말 쉬기)
+          </label>
+        </div>
+        <label className="flex items-start gap-2 text-[13px]">
+          <input type="checkbox" checked={b.ai} onChange={(e) => update({ ai: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
+          <span>
+            <b className="font-medium">AI 한마디</b> — Claude가 오늘 먼저 챙길 일과 짧은 조언을 써 줘요 (하루 한 번 · Opus 기준 대략 20~40원, Haiku는 거의 무료).
+            {!hasKey && <span className="text-[var(--c-orange-bar)]"> AI 탭에서 API 키를 먼저 넣어 주세요.</span>}
+          </span>
+        </label>
+        {b.ai && (
+          <label className="flex items-center gap-2 pl-6 text-[13px]">
+            날씨 도시
+            <input
+              value={b.city}
+              onChange={(e) => update({ city: e.target.value })}
+              placeholder="예: 서울 강남구 (비우면 날씨 없음)"
+              className="min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-2 py-1 outline-none focus:border-accent"
+            />
+          </label>
+        )}
+        {b.ai && b.city.trim() && <p className="pl-6 text-[12px] text-fg3">날씨는 웹 검색으로 찾아요. 검색과 검색 결과 읽기로 하루 대략 50~100원이 더 들어요.</p>}
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={() => (useUI.setState({ briefingOpen: true }), useUI.getState().setSettings(false))} className="w-fit rounded-[6px] border border-line-strong px-3 py-1.5 text-[13px] hover:bg-hover">
+          지금 미리 보기
+        </button>
+        <span className="text-[12px] text-fg3">하루 한 번, 정한 시각 이후 앱을 처음 볼 때(오후 3시까지) 떠요.</span>
+      </div>
+    </section>
   )
 }
 

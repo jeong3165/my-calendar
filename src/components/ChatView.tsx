@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { format, isToday } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import type Anthropic from '@anthropic-ai/sdk'
 import { useUI } from '../store'
 import type { Chat } from '../db'
@@ -10,6 +8,7 @@ import { deleteChat, newChat, NOW_TAG, undoAction, useChat, useChats } from '../
 import { fileToSource, loadSettings, type ImportSource } from '../lib/importFiles'
 import type { UserPart } from '../lib/chatAgent'
 import { Icon } from './ui'
+import { Markdown } from './Markdown'
 
 type Block = Anthropic.Beta.BetaContentBlock
 type Param = Anthropic.Beta.BetaContentBlockParam
@@ -36,18 +35,6 @@ const writeLast = (id: string) => {
   } catch {
     /* ignore */
   }
-}
-
-/* ───────── 마크다운 (링크는 새 창, 위험한 태그는 제거) ───────── */
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A') {
-    node.setAttribute('target', '_blank')
-    node.setAttribute('rel', 'noopener noreferrer')
-  }
-})
-function Markdown({ text }: { text: string }) {
-  const html = useMemo(() => DOMPurify.sanitize(marked.parse(text, { async: false, gfm: true, breaks: true }) as string), [text])
-  return <div className="md" dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 /** AI 채팅: 웹 검색 + 내 캘린더까지 다루는 범용 챗봇 */

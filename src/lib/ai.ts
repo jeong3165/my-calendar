@@ -161,3 +161,67 @@ export async function planSchedule(history: PlanTurn[], settings: AISettings, si
     throw new Error(friendlyError(e))
   }
 }
+
+
+/* ═════════ 아침 브리핑 AI 한마디 ═════════ */
+const BRIEFER = `당신은 개인 캘린더 앱의 아침 브리핑 도우미입니다. 사용자의 오늘 일정과 할 일 자료를 보고 하루를 시작하는 짧은 브리핑을 씁니다.
+- 한국어로 3~5문장, 다정하지만 군더더기 없이 씁니다. 마크다운 제목이나 목록은 쓰지 않고, 강조가 필요하면 **굵게**만 씁니다.
+- 가장 먼저 챙길 것(이른 시간 일정, 밀린 할 일, 오늘·곧 마감)을 짚고, 일정 사이 빈 시간에 할 일을 처리하라는 식의 실용적인 제안을 하나 덧붙입니다.
+- 자료에 없는 일정이나 할 일을 지어내지 않습니다.
+- 날씨를 알려 달라는 요청이 있으면 web_search 로 그 도시의 오늘 날씨를 찾아 한 문장으로 넣고, 외출 일정이 있으면 우산·옷차림을 짧게 조언합니다. 찾지 못하면 날씨 이야기는 빼세요.`
+
+export async function briefingNote(data: unknown, city: string, settings: AISettings, signal?: AbortSignal): Promise<string> {
+  const client = new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true })
+  const isHaiku = settings.model.startsWith('claude-haiku')
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const tools: Anthropic.Beta.BetaToolUnion[] = city
+    ? [
+        isHaiku
+          ? { type: 'web_search_20250305', name: 'web_search', max_uses: 2, user_location: { type: 'approximate', timezone: tz } }
+          : { type: 'web_search_20260209', name: 'web_search', max_uses: 2, user_location: { type: 'approximate', timezone: tz } },
+      ]
+    : []
+  const messages: Anthropic.Beta.BetaMessageParam[] = [
+    {
+      role: 'user',
+      content:
+        `오늘 자료(JSON):\n${JSON.stringify(data)}\n\n` +
+        `지금은 ${format(new Date(), 'yyyy-MM-dd (EEEE) HH:mm', { locale: ko })} 입니다.` +
+        (city ? ` ${city}의 오늘 날씨도 넣어 주세요.` : ''),
+    },
+  ]
+  try {
+    for (let i = 0; i < 4; i++) {
+      const res = await client.beta.messages.create(
+        {
+          model: settings.model,
+          max_tokens: 4000,
+          system: BRIEFER,
+          messages,
+          ...(tools.length ? { tools } : {}),
+          output_config: { effort: 'low' },
+          ...(isHaiku ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }),
+        },
+        { signal },
+      )
+      if (res.stop_reason === 'refusal') throw new Error('브리핑을 만들 수 없다는 응답을 받았어요.')
+      if (res.stop_reason === 'pause_turn') {
+        messages.push({ role: 'assistant', content: res.content as Anthropic.Beta.BetaContentBlockParam[] })
+        continue
+      }
+      // 웹 검색을 쓰면 글이 여러 조각으로 나뉘므로 마지막 검색 뒤의 글만 모은다
+      const lastTool = res.content.map((b) => b.type).lastIndexOf('web_search_tool_result')
+      const text = res.content
+        .slice(lastTool + 1)
+        .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+        .trim()
+      if (!text) throw new Error('브리핑 내용이 비어 있어요.')
+      return text
+    }
+    throw new Error('브리핑을 만드는 데 너무 오래 걸렸어요.')
+  } catch (e) {
+    throw new Error(friendlyError(e))
+  }
+}

@@ -164,6 +164,11 @@ export function Toolbar() {
                   </button>
                 ))}
               </div>
+              {daySub === 'plan' && (
+                <button onClick={() => useUI.setState({ briefingOpen: true })} className="flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-[6px] px-2 text-[13px] text-fg2 hover:bg-hover" title="오늘 일정·할 일 요약 (아침 브리핑)">
+                  ☀️ 브리핑
+                </button>
+              )}
             </>
           ) : (
             <FilterBar />

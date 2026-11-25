@@ -13,6 +13,7 @@ import { DayView } from './components/DayView'
 import { ProjectView } from './components/ProjectView'
 import { HabitsView } from './components/HabitsView'
 import { ChatView } from './components/ChatView'
+import { BriefingDialog } from './components/BriefingDialog'
 import { ImportDialog } from './components/ImportDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Icon } from './components/ui'
@@ -30,7 +31,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates, quickAddOpen, sidebarOpen, briefingOpen } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -67,8 +68,8 @@ export default function App() {
         if (e.key === 'Escape') ui.scopePrompt.resolve(null)
         return
       }
-      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates) {
-        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null })
+      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates || ui.briefingOpen) {
+        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null, briefingOpen: false })
         return
       }
       if (e.key === 'Escape') {
@@ -185,7 +186,7 @@ export default function App() {
   }
 
   // 휴대폰 뒤로가기 버튼으로 열린 창·상세 화면 닫기
-  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt)
+  const overlay = isMobile && !!(selectedId || paletteOpen || importOpen || settingsOpen || assistantOpen || templates || quickAddOpen || sidebarOpen || scopePrompt || briefingOpen)
   const pushed = useRef(false)
   const skipPop = useRef(false)
   useEffect(() => {
@@ -207,6 +208,7 @@ export default function App() {
       if (ui.scopePrompt) ui.scopePrompt.resolve(null)
       else if (ui.templates) useUI.setState({ templates: null })
       else if (ui.assistantOpen) useUI.setState({ assistantOpen: false })
+      else if (ui.briefingOpen) useUI.setState({ briefingOpen: false })
       else if (ui.importOpen) ui.closeImport()
       else if (ui.settingsOpen) ui.setSettings(false)
       else if (ui.paletteOpen) ui.setPalette(false)
@@ -247,6 +249,7 @@ export default function App() {
       {paletteOpen && <CommandPalette />}
       {importOpen && <ImportDialog />}
       {assistantOpen && <AssistantDialog />}
+      {briefingOpen && <BriefingDialog />}
       {templates && <TemplatesDialog />}
       {settingsOpen && <SettingsDialog />}
       {scopePrompt && <ScopeDialog />}

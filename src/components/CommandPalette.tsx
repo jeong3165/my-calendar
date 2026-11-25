@@ -67,6 +67,7 @@ export function CommandPalette() {
       { id: 'display', icon: 'settings', label: '화면 크기 조절 (글자·시간 칸·패널 너비)', run: () => ui.setSettings(true, 'display') },
       { id: 'templates', icon: 'checklist', label: '템플릿에서 추가 / 템플릿 관리', run: () => useUI.setState({ templates: { view: 'list' } }) },
       { id: 'habits', icon: 'flame', label: '습관 기록 보기', hint: 'H', run: () => ui.setMode('habits') },
+      { id: 'briefing', icon: 'sun', label: '아침 브리핑 보기', run: () => useUI.setState({ briefingOpen: true }) },
       { id: 'chat', icon: 'chat', label: 'AI 채팅 (웹 검색·질문)', hint: 'C', run: () => ui.setMode('chat') },
       { id: 'assistant', icon: 'sparkle', label: 'AI 일정 비서에게 부탁하기', hint: 'A', run: () => useUI.setState({ assistantOpen: true }) },
       { id: 'focus', icon: 'clock', label: '집중 타이머 시작', hint: 'F', run: () => void startFocus() },
