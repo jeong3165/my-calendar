@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { importJSON, useItems } from '../db'
 import { DdaySection } from './Dday'
+import { newNote, useNotes } from '../lib/notes'
 import { useAllTags } from './TagInput'
 import { useTrash } from '../db'
 import { LAYOUT_DEFAULT, useUI } from '../store'
@@ -117,6 +118,8 @@ export function Sidebar() {
         <ProjectsSection />
 
         <DdaySection />
+
+        <NotesSection />
 
         <TemplatesSection />
 
@@ -345,5 +348,53 @@ function TrashNav() {
       <span className="flex-1 text-left">휴지통</span>
       {n > 0 && <span className="tnum text-[12px] text-fg3">{n}</span>}
     </button>
+  )
+}
+
+function NotesSection() {
+  const notes = useNotes()
+  const [open, setOpen] = useState(true)
+  const go = (id: string | null) => {
+    useUI.setState({ noteId: id })
+    useUI.getState().setMode('notes')
+    if (useUI.getState().screen !== 'desktop') useUI.getState().setSidebar(false)
+  }
+  return (
+    <div className="px-1.5 pt-3">
+      <div className="flex items-center px-2 pb-1">
+        <button onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-1 text-left text-[12px] font-medium text-fg3 hover:text-fg2">
+          메모 {notes.length > 0 && <span>{open ? '▾' : `▸ ${notes.length}`}</span>}
+        </button>
+        <button
+          onClick={async () => go((await newNote()).id)}
+          className="grid h-5 w-5 place-items-center rounded text-fg3 hover:bg-hover hover:text-fg2"
+          title="새 메모"
+          aria-label="새 메모"
+        >
+          <Icon name="plus" size={13} />
+        </button>
+      </div>
+      {notes.length === 0 ? (
+        <button onClick={() => go(null)} className="w-full rounded-[6px] px-2 py-1 text-left text-[12px] text-fg3 hover:bg-hover">
+          회의록·아이디어 적기 →
+        </button>
+      ) : (
+        open && (
+          <>
+            {notes.slice(0, 5).map((n) => (
+              <button key={n.id} onClick={() => go(n.id)} className="flex w-full items-center gap-2 rounded-[6px] px-2 py-[5px] text-left text-[14px] text-fg2 hover:bg-hover">
+                <span className="w-5 shrink-0 text-center text-[13px]">{n.pinned ? '📌' : '📝'}</span>
+                <span className="min-w-0 flex-1 truncate">{n.title || '제목 없음'}</span>
+              </button>
+            ))}
+            {notes.length > 5 && (
+              <button onClick={() => go(null)} className="w-full rounded-[6px] px-2 py-1 pl-9 text-left text-[12px] text-fg3 hover:bg-hover">
+                메모 {notes.length}개 모두 보기 →
+              </button>
+            )}
+          </>
+        )
+      )}
+    </div>
   )
 }

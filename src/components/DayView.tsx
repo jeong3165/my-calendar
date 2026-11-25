@@ -13,6 +13,7 @@ import { blockMinutes, dayData, fmtMinutes, inboxTasks, moveToDate, moveToInbox,
 import { TimeGrid } from './TimeGrid'
 import { ReportView } from './ReportView'
 import { TagInput } from './TagInput'
+import { NoteLinks } from './NoteLinks'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 import { fmtWhen } from './viewUtil'
 
@@ -273,6 +274,7 @@ function ReviewView() {
           </section>
         )}
 
+        <NoteLinks filter={(n) => n.noteDate === date} create={{ template: 'meeting', date }} title="이날 메모" newLabel="회의록 쓰기" />
         <Reflection key={date} date={date} journal={journal} tomorrow={tomorrow} />
       </div>
     </div>

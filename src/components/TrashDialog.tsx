@@ -5,7 +5,7 @@ import { useUI } from '../store'
 import type { Item } from '../types'
 import { Icon } from './ui'
 
-const TYPE: Record<Item['type'], string> = { event: '일정', task: '할 일', project: '프로젝트', template: '템플릿', dday: '기념일' }
+const TYPE: Record<Item['type'], string> = { event: '일정', task: '할 일', project: '프로젝트', template: '템플릿', dday: '기념일', note: '메모' }
 
 function when(it: Item) {
   const d = it.start ?? it.due ?? it.anniv?.date

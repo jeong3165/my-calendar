@@ -1,3 +1,4 @@
+import { applyTheme } from './lib/theme'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -19,4 +20,13 @@ if (import.meta.env.PROD && location.protocol.startsWith('http') && 'serviceWork
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {})
   })
+}
+
+// 저장된 화면 테마를 먼저 적용 (깜빡임 방지) + 자동일 때 기기 설정이 바뀌면 따라감
+try {
+  const t = JSON.parse(localStorage.getItem('my-calendar.layout') ?? '{}').theme
+  applyTheme(t)
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(JSON.parse(localStorage.getItem('my-calendar.layout') ?? '{}').theme))
+} catch {
+  /* ignore */
 }

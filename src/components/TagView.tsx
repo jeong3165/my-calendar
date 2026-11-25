@@ -10,6 +10,7 @@ import { isRecurring, parseOccId } from '../lib/recur'
 import { fmtMinutes } from '../lib/review'
 import { ddayInfo } from '../lib/dday'
 import { cleanTag, useAllTags } from './TagInput'
+import { NoteLinks } from './NoteLinks'
 import { Checkbox, Icon, toggleDone } from './ui'
 
 type Period = 'all' | 'month' | 'last30' | 'upcoming'
@@ -154,6 +155,7 @@ export function TagView() {
                 ))}
               </Section>
             )}
+            <NoteLinks filter={(n) => n.tags.includes(tag)} title="메모" />
             {data.open.length > 0 && (
               <Section title={`할 일 ${data.open.length}`}>
                 {data.open.map((t) => (

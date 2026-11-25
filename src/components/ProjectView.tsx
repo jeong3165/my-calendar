@@ -13,6 +13,7 @@ import { fmtMinutes } from '../lib/review'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
 import { fmtWhen, isOverdue } from './viewUtil'
 import { TagInput } from './TagInput'
+import { NoteLinks } from './NoteLinks'
 
 /** 노션 페이지 같은 프로젝트 화면 */
 export function ProjectView() {
@@ -177,6 +178,10 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
             </ul>
           </section>
         )}
+
+        <div className="mt-6">
+          <NoteLinks filter={(n) => n.projectId === p.id} create={{ template: 'meeting', projectId: p.id, tags: p.tags }} title="프로젝트 메모" newLabel="회의록 쓰기" />
+        </div>
 
         <p className="mt-6 px-1 text-[12px] text-fg3">
           다른 곳에서 할 일을 만들 때 <code className="rounded bg-hover px-1">@{p.title.replace(/\s+/g, '') || '프로젝트'}</code> 를 붙이면 이 프로젝트로 들어와요. 상세 화면의 "프로젝트" 속성으로도 옮길 수 있어요.

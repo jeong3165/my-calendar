@@ -1,3 +1,4 @@
+import { applyTheme, type Theme } from './lib/theme'
 import { addDays, addMonths, addWeeks, isSameDay } from 'date-fns'
 import { create } from 'zustand'
 import { createItem, db, deleteItem } from './db'
@@ -57,6 +58,9 @@ type UI = {
   /** 내보내기 창을 열 때 미리 고를 태그·기간 */
   exportPreset: { tag?: string; from?: string; to?: string } | null
   worklogOpen: boolean
+  /** 메모 화면에서 연 메모 */
+  noteId: string | null
+  shareOpen: boolean
   quickAddOpen: boolean
   templates: TemplatesView | null
   // 화면 크기 조절 (이 브라우저에 기억)
@@ -66,6 +70,7 @@ type UI = {
   hourH: number
   boardW: Record<string, number> // 보드 칸별 너비
   showFocus: boolean // 주·일 보기에 집중 타이머 기록(빨간 세로 막대) 표시
+  theme: Theme // 화면 테마
   setLayout: (p: Partial<Layout>) => void
   setBoardW: (key: string, w: number | null) => void
   projectId: string | null
@@ -124,9 +129,9 @@ async function discardIfEmptyDraft(draftId: string | null) {
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
-type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number; boardW: Record<string, number>; showFocus: boolean }
+type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number; boardW: Record<string, number>; showFocus: boolean; theme: Theme }
 const LAYOUT_KEY = 'my-calendar.layout'
-export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48, boardW: {}, showFocus: true }
+export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48, boardW: {}, showFocus: true, theme: 'auto' }
 function loadLayout(): Partial<Layout> {
   try {
     return JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? '{}')
@@ -158,6 +163,8 @@ export const useUI = create<UI>((set, get) => ({
   tagView: null,
   exportPreset: null,
   worklogOpen: false,
+  noteId: null,
+  shareOpen: false,
   quickAddOpen: false,
   templates: null,
   ...LAYOUT_DEFAULT,
@@ -170,9 +177,10 @@ export const useUI = create<UI>((set, get) => ({
   },
   setLayout: (patch) => {
     set(patch)
-    const { sidebarW, peekW, uiScale, hourH, boardW, showFocus } = get()
+    const { sidebarW, peekW, uiScale, hourH, boardW, showFocus, theme } = get()
+    if ('theme' in patch) applyTheme(theme)
     try {
-      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH, boardW, showFocus }))
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH, boardW, showFocus, theme }))
     } catch {
       /* ignore */
     }

@@ -31,6 +31,7 @@ const MODES: { m: Mode; label: string; icon: IconName; key: string }[] = [
   { m: 'board', label: '보드', icon: 'board', key: 'B' },
   { m: 'day', label: '하루', icon: 'sun', key: 'P' },
   { m: 'habits', label: '습관', icon: 'flame', key: 'H' },
+  { m: 'notes', label: '메모', icon: 'file', key: 'O' },
   { m: 'chat', label: 'AI 채팅', icon: 'chat', key: 'C' },
 ]
 const DAY_SUBS = [
@@ -56,6 +57,8 @@ export function Toolbar() {
           ? { main: 'AI 채팅', sub: '웹 검색 · 내 일정 확인·추가' }
           : mode === 'tags'
           ? { main: '태그', sub: '태그별로 모아 보기' }
+          : mode === 'notes'
+          ? { main: '메모', sub: '회의록·아이디어·정리 글' }
           : mode === 'project'
           ? { main: '프로젝트', sub: '할 일을 묶어서 관리' }
           : mode === 'board'
@@ -118,7 +121,7 @@ export function Toolbar() {
 
       {/* 노션식 보기 탭 + 보기별 도구 (휴대폰에서 캘린더는 위 한 줄에 다 들어감) */}
       {isMobile && <TimerButton />}
-      {!(isMobile && ['calendar', 'project', 'habits', 'tasks', 'chat', 'tags'].includes(mode)) && (
+      {!(isMobile && ['calendar', 'project', 'habits', 'tasks', 'chat', 'tags', 'notes'].includes(mode)) && (
       <div className={isMobile ? 'flex flex-wrap items-center gap-1.5 [&_button]:text-[12px]' : 'flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line pb-1.5'}>
         <div className={`gap-0.5 ${isMobile ? 'hidden' : 'flex'}`} role="tablist" aria-label="보기">
           {MODES.map(({ m, label, icon, key }) => (
@@ -139,7 +142,7 @@ export function Toolbar() {
         <div className={isMobile ? 'flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto' : 'ml-auto flex flex-wrap items-center gap-1.5'}>
           {mode === 'calendar' ? (
             <CalNav />
-          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' || mode === 'chat' || mode === 'tags' ? null : mode === 'day' ? (
+          ) : mode === 'project' || mode === 'habits' || mode === 'tasks' || mode === 'chat' || mode === 'tags' || mode === 'notes' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
                 <>
@@ -220,6 +223,9 @@ function CalNav({ compact = false }: { compact?: boolean }) {
   const h = compact ? 'h-8' : 'h-7'
   return (
     <div className={`flex items-center ${compact ? 'gap-0.5' : 'gap-1.5'}`}>
+      <button onClick={() => useUI.setState({ shareOpen: true })} className={`grid ${h} ${compact ? 'w-8' : 'w-7'} place-items-center rounded-[6px] text-fg2 hover:bg-hover`} aria-label="주간 일정 이미지로 공유" title="주간 일정 이미지로 공유">
+        <Icon name="share" size={compact ? 18 : 16} />
+      </button>
       {!compact && (
         <button onClick={goToday} className={`${h} rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover`} title="오늘 (.)">
           오늘

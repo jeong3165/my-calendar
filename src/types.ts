@@ -35,7 +35,7 @@ export type Repeat = {
  */
 export type Item = {
   id: string
-  type: 'event' | 'task' | 'project' | 'template' | 'dday'
+  type: 'event' | 'task' | 'project' | 'template' | 'dday' | 'note'
   title: string
   start?: string
   end?: string
@@ -54,6 +54,9 @@ export type Item = {
   template?: TemplateData // 템플릿 내용
   /** 기념일·D-day: 기준 날짜 (음력이면 음력 월/일, 연도는 몰라도 됨) */
   anniv?: { date: string; yearly: boolean; lunar?: boolean; noYear?: boolean }
+  /** 메모: 연결한 날짜 (YYYY-MM-DD) · 고정 */
+  noteDate?: string
+  pinned?: boolean
   repeat?: Repeat
   exdates?: string[] // 반복에서 빠진 날짜 (YYYY-MM-DD)
   doneDates?: string[] // 반복 할 일: 완료한 회차 날짜
@@ -85,7 +88,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export type View = 'month' | 'week' | 'day'
-export type Mode = 'calendar' | 'tasks' | 'table' | 'board' | 'day' | 'habits' | 'chat' | 'project' | 'tags'
+export type Mode = 'calendar' | 'tasks' | 'table' | 'board' | 'day' | 'habits' | 'chat' | 'project' | 'tags' | 'notes'
 export type Status = 'todo' | 'doing' | 'done'
 export const STATUS_LABEL: Record<Status, string> = { todo: '할 일', doing: '진행 중', done: '완료' }
 

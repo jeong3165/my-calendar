@@ -190,7 +190,7 @@ export async function importJSON(file: File): Promise<number> {
   if (!Array.isArray(raw)) throw new Error('올바른 백업 파일이 아닙니다.')
   const items = raw.filter(
     (x): x is Item =>
-      !!x && typeof x === 'object' && typeof (x as Item).id === 'string' && ['event', 'task', 'project', 'template', 'dday'].includes((x as Item).type),
+      !!x && typeof x === 'object' && typeof (x as Item).id === 'string' && ['event', 'task', 'project', 'template', 'dday', 'note'].includes((x as Item).type),
   )
   const now = new Date().toISOString()
   await db.items.bulkPut(

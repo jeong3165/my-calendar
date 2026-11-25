@@ -487,7 +487,7 @@ function BriefingSection() {
 
 /* ───────── 화면 크기 ───────── */
 function DisplayTab() {
-  const { uiScale, hourH, sidebarW, peekW, showFocus, setLayout } = useUI()
+  const { uiScale, hourH, sidebarW, peekW, showFocus, theme, setLayout } = useUI()
   const row = (label: string, hint: string, control: React.ReactNode) => (
     <div className="flex flex-col gap-1.5">
       <span className="text-[13px] font-medium">{label}</span>
@@ -523,6 +523,23 @@ function DisplayTab() {
           <input type="range" min={360} max={760} value={peekW} onChange={(e) => setLayout({ peekW: Number(e.target.value) })} className="flex-1 accent-[var(--accent)]" aria-label="상세 패널 너비" />
         </div>,
       )}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[13px] font-medium">화면 테마</span>
+        <div className="flex rounded-[8px] bg-hover p-0.5 text-[13px]" role="radiogroup" aria-label="화면 테마">
+          {(
+            [
+              ['auto', '🖥 자동 (기기 설정)'],
+              ['light', '☀️ 밝게'],
+              ['dark', '🌙 어둡게'],
+            ] as const
+          ).map(([k, l]) => (
+            <button key={k} role="radio" aria-checked={theme === k} onClick={() => setLayout({ theme: k })} className={`h-8 flex-1 rounded-[6px] whitespace-nowrap ${theme === k ? 'bg-bg font-medium shadow-[0_1px_2px_rgba(0,0,0,0.08)]' : 'text-fg2'}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <span className="text-[12px] text-fg3">이 브라우저에만 적용돼요. 회사 PC만 어둡게 쓰는 식으로 기기마다 다르게 할 수 있어요.</span>
+      </div>
       <label className="flex items-start gap-2.5 text-[13px]">
         <input type="checkbox" checked={showFocus} onChange={(e) => setLayout({ showFocus: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
         <span>

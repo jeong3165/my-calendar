@@ -74,6 +74,10 @@ export function CommandPalette() {
             ui.showToast(`더미 데이터 ${n}개를 지웠어요.`)
           } }]
         : []),
+      { id: 'note-new', icon: 'file', label: '새 메모', run: async () => { const { newNote } = await import('../lib/notes'); const n = await newNote(); useUI.setState({ noteId: n.id }); ui.setMode('notes') } },
+      { id: 'notes', icon: 'file', label: '메모 보기', hint: 'O', run: () => ui.setMode('notes') },
+      { id: 'share', icon: 'image', label: '주간 일정 이미지로 공유', run: () => useUI.setState({ shareOpen: true }) },
+      { id: 'theme', icon: 'sun', label: `화면 테마 바꾸기 (지금: ${{ auto: '자동', light: '밝게', dark: '어둡게' }[ui.theme]})`, run: () => ui.setLayout({ theme: ui.theme === 'auto' ? 'dark' : ui.theme === 'dark' ? 'light' : 'auto' }) },
       { id: 'trash', icon: 'trash', label: '휴지통 열기 (지운 항목 되살리기)', run: () => useUI.setState({ trashOpen: true }) },
       { id: 'tags', icon: 'hash', label: '태그별로 모아 보기', hint: 'G', run: () => ui.setMode('tags') },
       { id: 'worklog', icon: 'checklist', label: '오늘 업무일지 쓰기', run: () => useUI.setState({ worklogOpen: true }) },
@@ -110,6 +114,8 @@ export function CommandPalette() {
     return out
 
     function itemCmd(it: Item): Cmd {
+      if (it.type === 'note')
+        return { id: it.id, icon: 'file', label: `📝 ${it.title || '제목 없는 메모'}`, hint: '메모', run: () => (useUI.setState({ noteId: it.id }), ui.setMode('notes')) }
       const key = it.type === 'task' ? taskKey(it) : it.start ? ymd(new Date(it.start)) : undefined
       return {
         id: it.id,
