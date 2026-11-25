@@ -30,6 +30,7 @@ const MODES: { m: Mode; label: string; icon: IconName; key: string }[] = [
   { m: 'table', label: '표', icon: 'table', key: 'L' },
   { m: 'board', label: '보드', icon: 'board', key: 'B' },
   { m: 'day', label: '하루', icon: 'sun', key: 'P' },
+  { m: 'habits', label: '습관', icon: 'flame', key: 'H' },
 ]
 const DAY_SUBS = [
   ['plan', '아침 계획'],
@@ -45,7 +46,9 @@ export function Toolbar() {
       ? title(view, date)
       : mode === 'table'
         ? { main: '모든 항목', sub: '일정과 할 일을 표로' }
-        : mode === 'project'
+        : mode === 'habits'
+          ? { main: '습관', sub: '반복 할 일의 연속 기록' }
+          : mode === 'project'
           ? { main: '프로젝트', sub: '할 일을 묶어서 관리' }
           : mode === 'board'
           ? { main: '할 일 보드', sub: '끌어다 놓아 상태 바꾸기' }
@@ -149,7 +152,7 @@ export function Toolbar() {
                 ))}
               </div>
             </>
-          ) : mode === 'project' ? null : mode === 'day' ? (
+          ) : mode === 'project' || mode === 'habits' ? null : mode === 'day' ? (
             <>
               {daySub !== 'plan' && (
                 <>

@@ -3,6 +3,8 @@ import { addDays, format, startOfWeek } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { createItem, saveJournal, useJournal, useJournals, useSessions } from '../db'
 import { useCalendarItems } from '../lib/subs'
+import { isHabit } from '../lib/habits'
+import { occurrences } from '../lib/recur'
 import { useUI } from '../store'
 import type { Item, Journal } from '../types'
 import { WEEK, parseYmd, relDay, ymd } from '../lib/date'
@@ -429,6 +431,8 @@ function WeekView() {
           )}
         </section>
 
+        <WeekHabits items={items} days={days} />
+
         <WeekNotes key={weekKey} weekKey={weekKey} journal={weekJ} />
       </div>
     </div>
@@ -464,6 +468,53 @@ function WeekNotes({ weekKey, journal }: { weekKey: string; journal?: Journal })
           placeholder="🔧 다음 주에 바꿀 점"
           className="w-full resize-y rounded-[8px] border border-line bg-transparent px-3 py-2 text-[14px] outline-none focus:border-accent"
         />
+      </div>
+    </section>
+  )
+}
+
+/** 주간 리뷰: 이번 주 습관 체크 현황 */
+function WeekHabits({ items, days }: { items: Item[]; days: string[] }) {
+  const habits = items.filter(isHabit)
+  const today = ymd(new Date())
+  if (!habits.length) return null
+  return (
+    <section>
+      <h3 className="mb-2 px-1 text-[14px] font-semibold">이번 주 습관</h3>
+      <div className="overflow-x-auto rounded-[10px] border border-line">
+        <table className="w-full min-w-[480px] text-[13px]">
+          <thead>
+            <tr className="border-b border-line text-[12px] text-fg3">
+              <th className="px-3 py-1.5 text-left font-normal">습관</th>
+              {days.map((d) => (
+                <th key={d} className="w-9 py-1.5 font-normal">
+                  {format(parseYmd(d), 'EEE', { locale: ko })}
+                </th>
+              ))}
+              <th className="w-16 py-1.5 font-normal">달성</th>
+            </tr>
+          </thead>
+          <tbody>
+            {habits.map((h) => {
+              const due = new Set(occurrences(h, days[0], days[6]))
+              const done = new Set(h.doneDates ?? [])
+              // 오늘은 했으면 포함, 아직이면 남은 날로 본다
+              const past = [...due].filter((d) => d < today || (d === today && done.has(d)))
+              const ok = past.filter((d) => done.has(d)).length
+              return (
+                <tr key={h.id} className="border-b border-line last:border-b-0">
+                  <td className="max-w-[200px] truncate px-3 py-1.5">{h.title}</td>
+                  {days.map((d) => (
+                    <td key={d} className="text-center">
+                      {!due.has(d) ? <span className="text-fg3">·</span> : done.has(d) ? <span className="text-[var(--c-green-bar)]">●</span> : d >= today ? <span className="text-fg3">○</span> : <span className="text-danger/70">✕</span>}
+                    </td>
+                  ))}
+                  <td className="tnum text-center text-fg2">{past.length ? `${ok}/${past.length}` : '—'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </section>
   )

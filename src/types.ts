@@ -74,7 +74,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export type View = 'month' | 'week' | 'day'
-export type Mode = 'calendar' | 'table' | 'board' | 'day' | 'project'
+export type Mode = 'calendar' | 'table' | 'board' | 'day' | 'habits' | 'project'
 export type Status = 'todo' | 'doing' | 'done'
 export const STATUS_LABEL: Record<Status, string> = { todo: '할 일', doing: '진행 중', done: '완료' }
 

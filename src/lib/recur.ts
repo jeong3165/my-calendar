@@ -276,8 +276,8 @@ export async function toggleOccurrenceDone(inst: Item) {
   const set = new Set(series.doneDates ?? [])
   if (set.has(inst.occ!.date)) set.delete(inst.occ!.date)
   else set.add(inst.occ!.date)
-  // 오래된 완료 기록은 1년치만 유지
-  const cutoff = ymd(addDays(new Date(), -366))
+  // 오래된 완료 기록은 3년치만 유지 (습관 최고 기록 계산용)
+  const cutoff = ymd(addDays(new Date(), -1100))
   await updateItem(series.id, { doneDates: [...set].filter((d) => d >= cutoff).sort() })
 }
 

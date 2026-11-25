@@ -7,6 +7,7 @@ import { hm, relDay, ymd } from '../lib/date'
 import { colorVars, sectionTasks, tagColor, taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
 import { repeatLabel } from '../lib/recur'
+import { habitStats } from '../lib/habits'
 import { subtaskProgress, withProject, useProjects } from '../lib/projects'
 import { SubBadge } from './ProjectView'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
@@ -28,7 +29,7 @@ export function TaskList({ section, compact = false }: { section: Section; compa
       ) : (
         <ul className={compact ? '' : 'pb-2'}>
           {list.map((t) => (
-            <TaskRow key={t.id} t={t} selected={t.id === selectedId} onOpen={() => open(t.id)} project={t.projectId ? projects.find((x) => x.id === t.projectId) : undefined} />
+            <TaskRow key={t.id} t={t} selected={t.id === selectedId} onOpen={() => open(t.id)} project={t.projectId ? projects.find((x) => x.id === t.projectId) : undefined} seriesOf={t.occ ? items.find((x) => x.id === t.occ!.seriesId) : undefined} />
           ))}
         </ul>
       )}
@@ -39,8 +40,9 @@ export function TaskList({ section, compact = false }: { section: Section; compa
 const empty = (s: Section) =>
   s.kind === 'today' ? '오늘 할 일이 없어요.' : s.kind === 'inbox' ? '날짜 없는 할 일이 여기에 모여요.' : s.kind === 'done' ? '아직 완료한 할 일이 없어요.' : '할 일이 없어요.'
 
-function TaskRow({ t, selected, onOpen, project }: { t: Item; selected: boolean; onOpen: () => void; project?: Item }) {
+function TaskRow({ t, selected, onOpen, project, seriesOf }: { t: Item; selected: boolean; onOpen: () => void; project?: Item; seriesOf?: Item }) {
   const sp = subtaskProgress(t)
+  const streak = t.occ && seriesOf ? habitStats(seriesOf).current : 0
   const key = taskKey(t)
   const overdue = !t.done && !!key && key < ymd(new Date())
   return (
@@ -62,7 +64,7 @@ function TaskRow({ t, selected, onOpen, project }: { t: Item; selected: boolean;
           <div className={`min-w-0 flex-1 truncate text-[14px] leading-[20px] ${t.done ? 'text-fg3 line-through' : ''}`}>{t.title || '제목 없음'}</div>
           {!t.done && <FocusButton item={t} className="opacity-0 group-hover:opacity-100 focus:opacity-100" />}
         </div>
-        {(key || t.priority === 'high' || t.tags.length > 0 || t.doing || project || sp) && (
+        {(key || t.priority === 'high' || t.tags.length > 0 || t.doing || project || sp || streak >= 2) && (
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-4 text-fg2">
             {key && (
               <span className={`tnum ${overdue ? 'text-danger' : ''}`}>
@@ -72,6 +74,7 @@ function TaskRow({ t, selected, onOpen, project }: { t: Item; selected: boolean;
             )}
             {t.doing && !t.done && <span className="rounded-[3px] px-1 text-[11px]" style={colorVars('blue')}>진행 중</span>}
             {sp && <SubBadge done={sp.done} total={sp.total} />}
+            {streak >= 2 && <span className="tnum text-[var(--c-orange-bar)]" title={`${streak}번 연속`}>🔥{streak}</span>}
             {project && (
               <span className="max-w-[110px] truncate" title={`프로젝트: ${project.title}`}>
                 {project.icon ?? '📁'} {project.title}
