@@ -9,6 +9,7 @@ import { dayItems, isTimed } from './items'
 import { expandItems, parseOccId, resolveItem, toggleOccurrenceDone } from './recur'
 import { useSubs } from './subs'
 import { applyProposals, undoApply, type Proposal } from './assistant'
+import { holidayOn } from './holidays'
 
 const uid = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`)
 
@@ -71,14 +72,17 @@ export async function searchCalendar({ from, to, query }: SearchInput) {
   const hit = (it: Item) => !q || [it.title, it.note ?? '', ...it.tags, projectName(all, it.projectId) ?? ''].some((s) => s.toLowerCase().includes(q))
   const expanded = expandItems(all, f, addDays(t, 1))
   const days: { date: string; items: ReturnType<typeof brief>[] }[] = []
+  const holidays: { date: string; name: string; day_off: boolean }[] = []
   for (let d = f; d <= t; d = addDays(d, 1)) {
+    const h = holidayOn(d)
+    if (h) holidays.push({ date: ymd(d), name: h.names.join(' · '), day_off: h.off })
     const { allDay, timed } = dayItems(expanded, d)
     const items = [...allDay, ...timed].filter(hit).map((it) => brief(it, all))
     if (items.length) days.push({ date: format(d, 'yyyy-MM-dd (EEE)', { locale: ko }), items })
   }
   // 검색어가 있으면 날짜 없는 할 일도 함께
   const undated = q ? all.filter((it) => it.type === 'task' && !it.due && !it.start && hit(it)).slice(0, 50).map((it) => brief(it, all)) : []
-  return { range: `${ymd(f)} ~ ${ymd(t)}`, days, ...(undated.length ? { undated_tasks: undated } : {}), ...(days.length || undated.length ? {} : { note: '해당하는 항목이 없습니다.' }) }
+  return { range: `${ymd(f)} ~ ${ymd(t)}`, days, ...(holidays.length ? { holidays } : {}), ...(undated.length ? { undated_tasks: undated } : {}), ...(days.length || undated.length ? {} : { note: '해당하는 항목이 없습니다.' }) }
 }
 
 export type AddInput = {

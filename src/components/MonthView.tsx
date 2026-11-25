@@ -5,6 +5,7 @@ import { createItem } from '../db'
 import { useCalendarItems } from '../lib/subs'
 import { expandItems, resolveItem, updateSmart } from '../lib/recur'
 import { useUI } from '../store'
+import { useHoliday } from '../lib/holidays'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { dayItems, isTimed } from '../lib/items'
 import { ItemChip } from './ui'
@@ -13,7 +14,9 @@ const MAX = 3
 
 export function MonthView() {
   const all = useCalendarItems()
-  const { date, open, selectedId, setDate, setView } = useUI()
+  const holiday = useHoliday()
+  const { date, open, selectedId, setDate, setView, isMobile } = useUI()
+  const short = (n: string) => (isMobile ? n.replace('대체공휴일', '대체휴일').replace('전국동시지방선거', '지방선거').replace(/^임시공휴일.*/, '임시휴일') : n)
   const [over, setOver] = useState<string | null>(null)
   const first = startOfWeek(startOfMonth(date), WEEK)
   const days = Array.from({ length: 42 }, (_, i) => addDays(first, i))
@@ -55,6 +58,7 @@ export function MonthView() {
           const rest = all.length - shown.length
           const inMonth = isSameMonth(d, date)
           const today = isToday(d)
+          const hol = holiday(d)
           return (
             <div
               key={key}
@@ -73,17 +77,28 @@ export function MonthView() {
               }}
               onDrop={(e) => onDrop(e, d)}
             >
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-1 max-md:flex-col-reverse max-md:items-stretch max-md:gap-0">
+                {hol && (
+                  <span className={`min-w-0 flex-1 truncate pl-0.5 text-[11px] max-md:pl-0 max-md:text-center max-md:text-[9.5px] max-md:leading-tight ${hol.off ? 'text-danger' : 'text-fg3'}`} title={hol.names.join(', ')}>
+                    {hol.names.map(short).join(' · ')}
+                  </span>
+                )}
                 <button
                   onClick={() => {
                     setDate(d)
                     setView('day')
                   }}
-                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 text-[12px] ${
-                    today ? 'bg-accent font-semibold text-white' : inMonth ? 'text-fg hover:bg-hover' : 'text-fg3 hover:bg-hover'
+                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 text-[12px] max-md:self-end ${
+                    today ? 'bg-accent font-semibold text-white' : hol?.off ? `text-danger hover:bg-hover ${inMonth ? '' : 'opacity-50'}` : inMonth ? 'text-fg hover:bg-hover' : 'text-fg3 hover:bg-hover'
                   }`}
                 >
-                  {d.getDate() === 1 ? format(d, 'M월 d일') : d.getDate()}
+                  {d.getDate() === 1 ? (
+                    <>
+                      <span className="max-md:hidden">{format(d, 'M월 ')}</span>1<span className="max-md:hidden">일</span>
+                    </>
+                  ) : (
+                    d.getDate()
+                  )}
                 </button>
               </div>
               {shown.map((it) => (

@@ -5,6 +5,7 @@ import type { Item } from '../types'
 import { parseYmd, ymd } from './date'
 import { dayItems, isTimed, taskKey } from './items'
 import { expandItems, instance, isRecurring, occurrences } from './recur'
+import { holidayOn } from './holidays'
 
 /* ───────── 설정 (기기마다) ───────── */
 export type BriefingSettings = {
@@ -54,7 +55,7 @@ const CUTOFF = 15 * 60 // 오후 3시가 지나서 처음 열면 그날 브리�
 export function isDue(s: BriefingSettings, now = new Date()) {
   if (!s.enabled || shownToday(now)) return false
   const dow = now.getDay()
-  if (s.weekdaysOnly && (dow === 0 || dow === 6)) return false
+  if (s.weekdaysOnly && (dow === 0 || dow === 6 || holidayOn(now)?.off)) return false
   const [h, m] = s.time.split(':').map(Number)
   const min = now.getHours() * 60 + now.getMinutes()
   return min >= h * 60 + m && min < Math.max(CUTOFF, h * 60 + m + 60)
@@ -72,6 +73,7 @@ export type Briefing = {
   soon: Item[] // 3일 안에 마감 (내일~모레)
   projects: Item[] // 7일 안에 마감인 프로젝트
   nextEvent?: Item // 지금 이후 가장 가까운 시간 일정
+  holiday?: string // 오늘 공휴일 이름
 }
 
 export function buildBriefing(all: Item[], now = new Date()): Briefing {
@@ -99,7 +101,8 @@ export function buildBriefing(all: Item[], now = new Date()): Briefing {
   const projects = own.filter((p) => p.type === 'project' && !p.done && p.due && p.due >= today && p.due <= week).sort((a, b) => a.due!.localeCompare(b.due!))
   const nextEvent = timed.find((x) => x.type === 'event' && new Date(x.start!) > now)
 
-  return { date: today, label: format(now, 'M월 d일 EEEE', { locale: ko }), events, dueToday, overdue, doing, habits, soon, projects, nextEvent }
+  const hol = holidayOn(now)
+  return { date: today, label: format(now, 'M월 d일 EEEE', { locale: ko }), holiday: hol?.off ? hol.names.join(' · ') : undefined, events, dueToday, overdue, doing, habits, soon, projects, nextEvent }
 }
 
 export const taskCount = (b: Briefing) => b.dueToday.length + b.overdue.length + b.habits.length
@@ -116,14 +119,15 @@ export const dueLabel = (it: Item, now = new Date()) => {
 
 /** 시스템 알림 한 줄 요약 */
 export function summaryLine(b: Briefing) {
-  if (isEmpty(b)) return '오늘은 일정과 할 일이 없어요. 여유로운 하루 보내세요!'
+  const hol = b.holiday ? `🎉 오늘은 ${b.holiday} · ` : ''
+  if (isEmpty(b)) return `${hol}오늘은 일정과 할 일이 없어요. 여유로운 하루 보내세요!`
   const parts: string[] = []
   if (b.events.length) parts.push(`일정 ${b.events.length}개${b.nextEvent ? ` (첫 일정 ${hm(b.nextEvent.start!)} ${b.nextEvent.title || '제목 없음'})` : ''}`)
   const tc = b.dueToday.length + b.habits.length
   if (tc) parts.push(`할 일 ${tc}개`)
   if (b.overdue.length) parts.push(`밀린 할 일 ${b.overdue.length}개`)
   if (b.soon.length) parts.push(`곧 마감 ${b.soon.length}개`)
-  return parts.join(' · ')
+  return hol + parts.join(' · ')
 }
 
 /** AI 한마디용 요약 자료 */
@@ -131,6 +135,7 @@ export function briefingForAI(b: Briefing, projectName: (id?: string) => string 
   const t = (it: Item) => ({ title: it.title || '제목 없음', ...(timeLabel(it) ? { time: timeLabel(it) } : {}), ...(it.priority === 'high' ? { priority: 'high' } : {}), ...(projectName(it.projectId) ? { project: projectName(it.projectId) } : {}), ...(it.readonly ? { calendar: it.readonly.name } : {}) })
   return {
     today: b.label,
+    ...(b.holiday ? { holiday: b.holiday } : {}),
     events: b.events.map(t),
     due_today: b.dueToday.map(t),
     overdue: b.overdue.map((x) => ({ ...t(x), due: dueLabel(x) })),

@@ -6,6 +6,8 @@ import { Icon } from './ui'
 import { SubsTab } from './SubsTab'
 import { REMIND_ALLDAY, REMIND_TIMED, loadNotify, permission, saveNotify, showSystemNotification } from '../lib/notify'
 import { loadBriefing, saveBriefing } from '../lib/briefing'
+import { holidaysOfYear, lunarSupported, useHolidaySettings } from '../lib/holidays'
+import { ymd } from '../lib/date'
 
 export function SettingsDialog() {
   const { setSettings, settingsTab } = useUI()
@@ -450,7 +452,7 @@ function BriefingSection() {
           </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={b.weekdaysOnly} onChange={(e) => update({ weekdaysOnly: e.target.checked })} className="accent-[var(--accent)]" />
-            평일만 (주말 쉬기)
+            평일만 (주말·공휴일 쉬기)
           </label>
         </div>
         <label className="flex items-start gap-2 text-[13px]">
@@ -524,6 +526,77 @@ function DisplayTab() {
       <button onClick={() => setLayout(LAYOUT_DEFAULT)} className="self-start rounded-[6px] border border-line-strong px-3 py-1.5 text-[13px] hover:bg-hover">
         모두 기본값으로
       </button>
+      <HolidaySection />
     </div>
+  )
+}
+
+/* ───────── 공휴일 ───────── */
+function HolidaySection() {
+  const h = useHolidaySettings()
+  const [date, setDate] = useState('')
+  const [name, setName] = useState('')
+  const thisYear = new Date().getFullYear()
+  const upcoming = [...holidaysOfYear(thisYear).entries(), ...holidaysOfYear(thisYear + 1).entries()]
+    .filter(([k, l]) => k >= ymd(new Date()) && l.some((x) => x.kind !== 'observance'))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 6)
+  return (
+    <section className="flex flex-col gap-3 border-t border-line pt-5">
+      <label className="flex items-start gap-2.5 text-[13px]">
+        <input type="checkbox" checked={h.enabled} onChange={(e) => h.set({ enabled: e.target.checked })} className="mt-0.5 accent-[var(--accent)]" />
+        <span>
+          <b className="font-medium">한국 공휴일 표시</b>
+          <span className="block text-[12px] text-fg2">설날·추석(음력 자동 계산), 대체공휴일, 선거일을 빨간 날로 보여 줘요. 아침 브리핑의 "평일만"도 공휴일엔 쉬어요.</span>
+        </span>
+      </label>
+      {h.enabled && (
+        <label className="flex items-center gap-2.5 pl-6 text-[13px]">
+          <input type="checkbox" checked={h.observances} onChange={(e) => h.set({ observances: e.target.checked })} className="accent-[var(--accent)]" />
+          쉬지 않는 기념일도 회색으로 표시 (노동절, 제헌절)
+        </label>
+      )}
+      {h.enabled && !lunarSupported() && <p className="pl-6 text-[12px] text-[var(--c-orange-bar)]">이 브라우저는 음력 계산을 지원하지 않아 설날·추석·부처님오신날이 빠져요. 최신 Chrome·Edge·Safari를 써 주세요.</p>}
+      {h.enabled && upcoming.length > 0 && (
+        <p className="pl-6 text-[12px] leading-relaxed text-fg3">
+          다가오는 휴일: {upcoming.map(([k, l]) => `${Number(k.slice(5, 7))}/${Number(k.slice(8))} ${l.filter((x) => x.kind !== 'observance').map((x) => x.name).join('·')}`).join(', ')}
+        </p>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[13px] font-medium">직접 추가한 휴일</span>
+        <span className="text-[12px] text-fg2">임시공휴일, 회사 창립기념일, 여름휴가처럼 쉬는 날을 넣으면 빨간 날로 표시돼요 (이 기기에만 저장).</span>
+        {h.custom.length > 0 && (
+          <ul className="flex flex-col gap-0.5">
+            {[...h.custom]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map((c) => (
+                <li key={c.date + c.name} className="flex items-center gap-2 rounded-[6px] px-1.5 py-1 text-[13px] hover:bg-hover">
+                  <span className="tnum text-fg2">{c.date}</span>
+                  <span className="flex-1 truncate">{c.name}</span>
+                  <button onClick={() => h.set({ custom: h.custom.filter((x) => x !== c) })} className="grid h-6 w-6 place-items-center rounded text-fg3 hover:bg-active" aria-label={`${c.name} 지우기`}>
+                    <Icon name="x" size={12} />
+                  </button>
+                </li>
+              ))}
+          </ul>
+        )}
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!date || !name.trim()) return
+            h.set({ custom: [...h.custom, { date, name: name.trim() }] })
+            setName('')
+          }}
+        >
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-[8px] border border-line-strong bg-bg px-2 py-1 text-[13px] outline-none focus:border-accent" aria-label="휴일 날짜" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="이름 (예: 임시공휴일)" className="min-w-0 flex-1 rounded-[8px] border border-line-strong bg-bg px-2 py-1 text-[13px] outline-none focus:border-accent" aria-label="휴일 이름" />
+          <button disabled={!date || !name.trim()} className="rounded-[6px] border border-line-strong px-3 py-1 text-[13px] hover:bg-hover disabled:opacity-40">
+            추가
+          </button>
+        </form>
+      </div>
+    </section>
   )
 }

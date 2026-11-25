@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { addDays, addMonths, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
 import { useCalendarItems } from '../lib/subs'
 import { useUI } from '../store'
+import { useHoliday } from '../lib/holidays'
 import { WEEK, WEEKDAYS, ymd } from '../lib/date'
 import { taskKey } from '../lib/items'
 import { expandItems } from '../lib/recur'
@@ -10,6 +11,7 @@ import { Icon } from './ui'
 export function MiniCalendar() {
   const { date, setDate, view } = useUI()
   const items = useCalendarItems()
+  const holiday = useHoliday()
   const [month, setMonth] = useState(() => startOfMonth(date))
   useEffect(() => setMonth(startOfMonth(date)), [date])
 
@@ -55,13 +57,15 @@ export function MiniCalendar() {
         {days.map((d) => {
           const today = isToday(d)
           const sel = inRange(d)
+          const hol = holiday(d)
           return (
             <button
               key={d.toISOString()}
               onClick={() => setDate(d)}
+              title={hol?.names.join(', ')}
               className={`tnum relative mx-auto my-px grid h-7 w-7 place-items-center rounded-full text-[12px] ${
                 today ? 'bg-accent font-semibold text-white' : sel ? 'bg-active font-medium' : 'hover:bg-hover'
-              } ${!today && !isSameMonth(d, month) ? 'text-fg3' : ''}`}
+              } ${!today && hol?.off ? 'text-danger' : ''} ${!today && !isSameMonth(d, month) ? (hol?.off ? 'opacity-50' : 'text-fg3') : ''}`}
             >
               {d.getDate()}
               {busy.has(ymd(d)) && !today && <span className="absolute bottom-0.5 h-[3px] w-[3px] rounded-full bg-fg3" />}

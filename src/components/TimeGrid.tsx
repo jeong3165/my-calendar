@@ -9,6 +9,7 @@ import type { Item } from '../types'
 import { atMinutes, hm, ymd } from '../lib/date'
 import { dayItems, layoutColumns, timedSegment, isTimed } from '../lib/items'
 import { Checkbox, Icon, ItemChip, toggleDone } from './ui'
+import { useHoliday } from '../lib/holidays'
 
 const SNAP = 15
 const snap = (m: number) => Math.round(m / SNAP) * SNAP
@@ -31,6 +32,7 @@ function useNow() {
 
 export function TimeGrid({ days }: { days: Date[] }) {
   const all = useCalendarItems()
+  const holiday = useHoliday()
   const { open, selectedId, setDate, setView } = useUI()
   const H = useUI((s) => s.hourH) // 1시간 높이(px): 설정·Ctrl+휠로 조절
   const items = useMemo(() => expandItems(all, days[0], addDays(days[days.length - 1], 1)), [all, days])
@@ -236,6 +238,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
         <div className="grid flex-1" style={{ gridTemplateColumns: cols }}>
           {days.map((d) => {
             const today = isToday(d)
+            const hol = holiday(d)
             return (
               <button
                 key={d.toISOString()}
@@ -243,14 +246,18 @@ export function TimeGrid({ days }: { days: Date[] }) {
                   setDate(d)
                   setView('day')
                 }}
-                className="flex items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1"
+                title={hol?.names.join(', ')}
+                className="flex min-w-0 items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1"
               >
-                <span className={today ? 'text-accent' : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
+                <span className={today ? 'text-accent' : hol?.off ? 'text-danger' : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
                 <span
-                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 font-semibold ${today ? 'bg-accent text-white' : 'text-fg'}`}
+                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 font-semibold ${today ? 'bg-accent text-white' : hol?.off ? 'text-danger' : 'text-fg'}`}
                 >
                   {format(d, 'd')}
                 </span>
+                {hol && (
+                  <span className={`min-w-0 truncate text-[11.5px] ${hol.off ? 'text-danger' : 'text-fg3'} ${days.length > 3 ? 'max-lg:hidden' : ''}`}>{hol.names.join(' · ')}</span>
+                )}
               </button>
             )
           })}
