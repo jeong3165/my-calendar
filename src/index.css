@@ -15,6 +15,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
   --color-sat: var(--sat);
+  --color-today: var(--today);
   --font-sans: "Pretendard Variable", Pretendard, Inter, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", sans-serif;
 }
 
@@ -35,6 +36,7 @@
   --accent-soft: rgba(35, 131, 226, 0.12);
   --danger: #e03e3e;
   --sat: #2f6fd1;
+  --today: #0b8a4c; /* 오늘 표시: 토(파랑)·일(빨강)과 겹치지 않게 초록 */
   --shadow-pop: 0 0 0 1px rgba(15, 15, 15, 0.05), 0 3px 6px rgba(15, 15, 15, 0.1), 0 9px 24px rgba(15, 15, 15, 0.2);
 
   /* 태그 색 9종: 옅은 배경 / 진한 글자 / 블록 왼쪽 바 */
@@ -67,6 +69,7 @@
     --accent-soft: rgba(63, 149, 234, 0.18);
     --danger: #f06b6b;
     --sat: #6f9df0;
+    --today: #24a565;
     --shadow-pop: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 3px 6px rgba(0, 0, 0, 0.3), 0 9px 24px rgba(0, 0, 0, 0.45);
 
     --c-gray-bg: #373737;   --c-gray-text: #d4d4d4;

@@ -90,7 +90,7 @@ export function MonthView() {
                     setView('day')
                   }}
                   className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 text-[12px] max-md:self-end ${
-                    today ? 'bg-accent font-semibold text-white' : tone ? `${TONE_TEXT[tone]} hover:bg-hover ${inMonth ? '' : 'opacity-50'}` : inMonth ? 'text-fg hover:bg-hover' : 'text-fg3 hover:bg-hover'
+                    today ? 'bg-today font-semibold text-white' : tone ? `${TONE_TEXT[tone]} hover:bg-hover ${inMonth ? '' : 'opacity-50'}` : inMonth ? 'text-fg hover:bg-hover' : 'text-fg3 hover:bg-hover'
                   }`}
                 >
                   {d.getDate() === 1 ? (

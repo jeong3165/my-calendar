@@ -250,9 +250,9 @@ export function TimeGrid({ days }: { days: Date[] }) {
                 title={hol?.names.join(', ')}
                 className={`flex min-w-0 items-center justify-center gap-1.5 py-2 text-[13px] hover:bg-hover max-md:py-1 ${hol?.off ? 'bg-[color-mix(in_srgb,var(--danger)_8%,transparent)]' : ''}`}
               >
-                <span className={today ? 'text-accent' : tone ? TONE_TEXT[tone] : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
+                <span className={today ? 'font-medium text-today' : tone ? TONE_TEXT[tone] : 'text-fg2'}>{format(d, 'EEE', { locale: ko })}</span>
                 <span
-                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 font-semibold ${today ? 'bg-accent text-white' : tone ? TONE_TEXT[tone] : 'text-fg'}`}
+                  className={`tnum grid h-6 min-w-6 place-items-center rounded-full px-1 font-semibold ${today ? 'bg-today text-white' : tone ? TONE_TEXT[tone] : 'text-fg'}`}
                 >
                   {format(d, 'd')}
                 </span>

@@ -65,7 +65,7 @@ export function MiniCalendar() {
               onClick={() => setDate(d)}
               title={hol?.names.join(', ')}
               className={`tnum relative mx-auto my-px grid h-7 w-7 place-items-center rounded-full text-[12px] ${
-                today ? 'bg-accent font-semibold text-white' : sel ? 'bg-active font-medium' : 'hover:bg-hover'
+                today ? 'bg-today font-semibold text-white' : sel ? 'bg-active font-medium' : 'hover:bg-hover'
               } ${!today && tone ? TONE_TEXT[tone] : ''} ${!today && !sel && hol?.off ? 'bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]' : ''} ${!today && !isSameMonth(d, month) ? (tone ? 'opacity-50' : 'text-fg3') : ''}`}
             >
               {d.getDate()}
