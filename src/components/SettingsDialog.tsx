@@ -234,6 +234,16 @@ function AITab() {
   const { setSettings, showToast } = useUI()
   const [s, setS] = useState(loadSettings)
   const [show, setShow] = useState(false)
+  const [check, setCheck] = useState<{ state: 'idle' | 'busy' } | { state: 'ok'; text: string } | { state: 'bad'; text: string; detail: string }>({ state: 'idle' })
+  const key = s.apiKey
+  const shape = !key ? '' : !key.startsWith('sk-ant-') ? '키는 보통 sk-ant- 로 시작해요. 다른 값을 붙여넣지 않았는지 확인해 주세요.' : key.length < 60 ? '키가 너무 짧아요. 일부만 복사된 것 같아요.' : ''
+
+  async function test() {
+    setCheck({ state: 'busy' })
+    const { checkKey } = await import('../lib/ai')
+    const r = await checkKey(s.apiKey, s.model)
+    setCheck(r.ok ? { state: 'ok', text: `연결됐어요 · ${r.name} 사용 가능` } : { state: 'bad', text: r.message, detail: r.detail })
+  }
 
   return (
     <div className="flex flex-col gap-4 p-5">
@@ -242,7 +252,7 @@ function AITab() {
           <input
             type={show ? 'text' : 'password'}
             value={s.apiKey}
-            onChange={(e) => setS({ ...s, apiKey: e.target.value.trim() })}
+            onChange={(e) => (setS({ ...s, apiKey: e.target.value.replace(/[\s\u200b-\u200d\ufeff]/g, '') }), setCheck({ state: 'idle' }))}
             placeholder="sk-ant-..."
             autoComplete="off"
             spellCheck={false}
@@ -254,9 +264,23 @@ function AITab() {
         </div>
       </Row>
 
+      {shape && <p className="-mt-2 text-[12.5px] text-[var(--c-orange-bar)]">{shape}</p>}
+      <div className="-mt-1 flex flex-wrap items-center gap-2">
+        <button onClick={test} disabled={!key || check.state === 'busy'} className="rounded-[6px] border border-line-strong px-3 py-1.5 text-[13px] hover:bg-hover disabled:opacity-40">
+          {check.state === 'busy' ? '확인 중…' : '키 확인 (요금 없음)'}
+        </button>
+        {check.state === 'ok' && <span className="text-[13px] text-[var(--c-green-bar)]">✓ {check.text}</span>}
+        {check.state === 'bad' && (
+          <span className="flex flex-col text-[13px] text-danger">
+            {check.text}
+            <span className="font-mono text-[11px] text-fg3">{check.detail}</span>
+          </span>
+        )}
+      </div>
+
       <label className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium">모델</span>
-        <select value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} className="rounded-[8px] border border-line-strong bg-bg px-2.5 py-2 text-[14px] outline-none focus:border-accent">
+        <select value={s.model} onChange={(e) => (setS({ ...s, model: e.target.value }), setCheck({ state: 'idle' }))} className="rounded-[8px] border border-line-strong bg-bg px-2.5 py-2 text-[14px] outline-none focus:border-accent">
           {MODELS.map((m) => (
             <option key={m.id} value={m.id}>
               {m.label}

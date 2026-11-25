@@ -225,3 +225,15 @@ export async function briefingNote(data: unknown, city: string, settings: AISett
     throw new Error(friendlyError(e))
   }
 }
+
+/* ═════════ API 키 확인 (요금 없음: 모델 정보 조회) ═════════ */
+export async function checkKey(apiKey: string, model: string): Promise<{ ok: true; name: string } | { ok: false; message: string; detail: string }> {
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 0 })
+  try {
+    const m = await client.models.retrieve(model)
+    return { ok: true, name: m.display_name }
+  } catch (e) {
+    const detail = e instanceof Anthropic.APIError ? `HTTP ${e.status ?? '-'} · ${e.message}` : e instanceof Error ? e.message : String(e)
+    return { ok: false, message: friendlyError(e), detail }
+  }
+}

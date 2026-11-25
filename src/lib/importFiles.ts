@@ -13,7 +13,11 @@ const KEY = 'my-calendar.ai-settings'
 export function loadSettings(): AISettings {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { apiKey: '', model: MODELS[0].id, ...JSON.parse(raw) }
+    if (raw) {
+      const s: AISettings = { apiKey: '', model: MODELS[0].id, ...JSON.parse(raw) }
+      // 복사할 때 섞여 들어온 공백·보이지 않는 문자 제거
+      return { ...s, apiKey: String(s.apiKey ?? '').replace(/[\s\u200b-\u200d\ufeff]/g, '') }
+    }
   } catch {
     /* 저장소를 못 쓰는 환경 */
   }
