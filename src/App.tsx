@@ -18,6 +18,7 @@ import { Icon } from './components/ui'
 import { SyncAgent } from './components/SyncAgent'
 import { SubsAgent } from './components/SubsAgent'
 import { TimerWidget } from './components/TimerWidget'
+import { AssistantDialog } from './components/AssistantDialog'
 import { startFocus, toggle as toggleTimer, useTimer } from './lib/timer'
 import { resolveItem } from './lib/recur'
 import { db } from './db'
@@ -25,7 +26,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -58,8 +59,8 @@ export default function App() {
         if (e.key === 'Escape') ui.scopePrompt.resolve(null)
         return
       }
-      if (ui.settingsOpen || ui.importOpen) {
-        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.closeImport()
+      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen) {
+        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false })
         return
       }
       if (e.key === 'Escape') {
@@ -85,6 +86,7 @@ export default function App() {
         KeyL: () => ui.setMode('table'),
         KeyB: () => ui.setMode('board'),
         KeyP: () => ui.setMode('day'),
+        KeyA: () => useUI.setState({ assistantOpen: true }),
         KeyF: () => {
           if (useTimer.getState().phase !== 'idle') return toggleTimer()
           const sel = ui.selectedId
@@ -179,6 +181,7 @@ export default function App() {
       </main>
       {paletteOpen && <CommandPalette />}
       {importOpen && <ImportDialog />}
+      {assistantOpen && <AssistantDialog />}
       {settingsOpen && <SettingsDialog />}
       {scopePrompt && <ScopeDialog />}
       <TimerWidget />

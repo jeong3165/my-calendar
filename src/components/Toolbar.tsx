@@ -76,6 +76,14 @@ export function Toolbar() {
         <div className="ml-auto flex items-center gap-1.5">
           <TimerButton />
           <button
+            onClick={() => useUI.setState({ assistantOpen: true })}
+            className="flex h-8 items-center gap-1.5 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover"
+            title="AI 일정 비서 (A) — 말로 부탁하면 빈 시간에 배치해 드려요"
+          >
+            <Icon name="sparkle" size={15} className="text-[var(--c-purple-bar)]" />
+            <span className="hidden lg:inline">AI 비서</span>
+          </button>
+          <button
             onClick={() => openImport()}
             className="flex h-8 items-center gap-1.5 rounded-[6px] border border-line-strong px-2.5 text-[13px] hover:bg-hover"
             title="스크린샷·사진·파일에서 일정 가져오기 (I) — 캡처 후 Ctrl/⌘+V 도 돼요"

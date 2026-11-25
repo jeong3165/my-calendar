@@ -64,6 +64,7 @@ export function CommandPalette() {
       { id: 'notify', icon: 'bell', label: '알림 설정', run: () => ui.setSettings(true, 'notify') },
       { id: 'sync', icon: 'upload', label: 'GitHub 동기화 설정 / 지금 동기화', run: () => ui.setSettings(true, 'sync') },
       { id: 'today', icon: 'sun', label: '오늘로 이동', hint: '.', run: () => ui.goToday() },
+      { id: 'assistant', icon: 'sparkle', label: 'AI 일정 비서에게 부탁하기', hint: 'A', run: () => useUI.setState({ assistantOpen: true }) },
       { id: 'focus', icon: 'clock', label: '집중 타이머 시작', hint: 'F', run: () => void startFocus() },
       { id: 'timer', icon: 'clock', label: '집중 타이머 창 열기 / 설정', run: () => useUI.setState({ timerPanel: true }) },
       { id: 'plan', icon: 'sun', label: '오늘 계획 세우기', hint: 'P', run: () => (ui.setMode('day'), ui.setDaySub('plan')) },

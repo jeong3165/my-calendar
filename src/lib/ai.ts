@@ -96,3 +96,68 @@ function friendlyError(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
+
+/* ═════════ AI 일정 비서 ═════════ */
+export const PlanSchema = z.object({
+  summary: z.string().describe('무엇을 어떻게 배치했는지 2~3문장 요약 (한국어)'),
+  actions: z.array(
+    z.object({
+      kind: z.enum(['create', 'schedule', 'move', 'set_due']).describe('create=새 일정/할 일, schedule=기존 할 일에 시간 블록, move=기존 항목 날짜·시간 옮기기, set_due=할 일 마감일만 변경'),
+      item_id: z.string().nullable().describe('기존 항목을 바꿀 때 그 id. create 면 null'),
+      type: z.enum(['event', 'task']).nullable().describe('create 일 때만: 시간 약속은 event, 해야 할 일은 task'),
+      title: z.string().nullable().describe('create 일 때 제목'),
+      date: z.string().describe('YYYY-MM-DD'),
+      start_time: z.string().nullable().describe('HH:MM (24시간). 날짜만 바꿀 때는 null'),
+      end_time: z.string().nullable().describe('HH:MM (24시간)'),
+      project: z.string().nullable().describe('create 일 때 넣을 프로젝트 이름 (목록에 있는 것만)'),
+      reason: z.string().describe('이렇게 배치한 이유 한 문장'),
+    }),
+  ),
+  question: z.string().nullable().describe('요청이 모호해서 확인이 필요하면 사용자에게 할 질문. 아니면 null'),
+})
+export type Plan = z.infer<typeof PlanSchema>
+
+const PLANNER = `당신은 개인 캘린더 앱의 일정 비서입니다. 사용자의 요청을 받아 캘린더에 반영할 '제안'을 만듭니다.
+제안은 사용자가 검토하고 고친 뒤에 적용하므로, 실제로 저장하지는 않습니다.
+
+함께 주어지는 자료:
+- [빈 시간]: 날짜별로 비어 있는 시간대. 새 일정·시간 블록은 반드시 이 안에 넣습니다.
+- [범위 안의 일정]: fixed=true 인 일정(반복·구독·지난 일정)은 절대 옮기지 않습니다.
+- [아직 안 끝난 할 일]: id 로 가리킵니다. 마감일(due)과 우선순위(priority)를 고려합니다.
+
+규칙:
+- 겹치게 배치하지 않습니다. 같은 응답 안의 제안끼리도 겹치면 안 됩니다.
+- 마감일이 있는 할 일은 마감일 전에, 우선순위 high 는 먼저 배치합니다.
+- 길이를 말하지 않으면 할 일은 30~60분, 운동·공부 같은 활동은 1시간으로 합니다. 하루에 같은 활동을 몰아넣지 말고 고르게 나눕니다.
+- 사용자가 아침/저녁/주말 등 시간대를 말하면 그 범위 안에서 고릅니다. 빈 시간이 모자라면 가능한 만큼만 하고 summary 에 부족하다고 적습니다.
+- 기존 할 일에 시간을 정해 주는 것은 schedule, 기존 일정·할 일의 날짜를 바꾸는 것은 move, 마감일만 바꾸는 것은 set_due 입니다.
+- 요청과 관계없는 항목은 건드리지 않습니다. 제안은 최대 30개입니다.
+- 요청이 모호해서 정하기 어려우면 actions 를 비우고 question 에 짧게 물어봅니다.
+- 날짜는 YYYY-MM-DD, 시간은 24시간 HH:MM, 모든 문장은 한국어로 씁니다.`
+
+export type PlanTurn = { role: 'user' | 'assistant'; content: string }
+
+/** history: 이전 대화 (첫 user 메시지에 캘린더 자료 포함) */
+export async function planSchedule(history: PlanTurn[], settings: AISettings, signal?: AbortSignal): Promise<Plan> {
+  const client = new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true })
+  const isHaiku = settings.model.startsWith('claude-haiku')
+  try {
+    const res = await client.beta.messages.parse(
+      {
+        model: settings.model,
+        max_tokens: 16000,
+        system: PLANNER,
+        messages: history,
+        output_config: { effort: 'medium', format: betaZodOutputFormat(PlanSchema) },
+        ...(isHaiku ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }),
+      },
+      { signal },
+    )
+    if (res.stop_reason === 'refusal') throw new Error('이 요청은 처리할 수 없다는 응답을 받았어요. 다르게 표현해 보세요.')
+    if (res.stop_reason === 'max_tokens') throw new Error('제안이 너무 길어 잘렸어요. 범위를 좁혀서 다시 요청해 주세요.')
+    if (!res.parsed_output) throw new Error('결과를 해석하지 못했어요. 다시 시도해 주세요.')
+    return res.parsed_output
+  } catch (e) {
+    throw new Error(friendlyError(e))
+  }
+}

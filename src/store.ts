@@ -41,6 +41,7 @@ type UI = {
   setBoardGroup: (g: 'status' | 'priority' | 'project') => void
   daySub: 'plan' | 'review' | 'week'
   timerPanel: boolean
+  assistantOpen: boolean
   projectId: string | null
   openProject: (id: string) => void
   dayDate: Date
@@ -110,6 +111,7 @@ export const useUI = create<UI>((set, get) => ({
   daySub: new Date().getHours() < 15 ? 'plan' : 'review',
   dayDate: new Date(),
   timerPanel: false,
+  assistantOpen: false,
   projectId: null,
   openProject: (projectId) => {
     const { draftId, selectedId } = get()
