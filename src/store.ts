@@ -2,10 +2,11 @@ import { addDays, addMonths, addWeeks, isSameDay } from 'date-fns'
 import { create } from 'zustand'
 import { createItem, db, deleteItem } from './db'
 import type { Item, Mode, Section, View } from './types'
+import type { TemplatesView } from './components/TemplatesDialog'
 import { DEFAULT_FILTERS, type Filters, type Sort } from './lib/filters'
 
 export type Scope = 'this' | 'following' | 'all'
-type SettingsTab = 'ai' | 'sync' | 'notify' | 'subs'
+type SettingsTab = 'ai' | 'sync' | 'notify' | 'subs' | 'display'
 
 const mobileQuery = '(max-width: 767px)'
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia(mobileQuery).matches
@@ -42,6 +43,13 @@ type UI = {
   daySub: 'plan' | 'review' | 'week'
   timerPanel: boolean
   assistantOpen: boolean
+  templates: TemplatesView | null
+  // 화면 크기 조절 (이 브라우저에 기억)
+  sidebarW: number
+  peekW: number
+  uiScale: number
+  hourH: number
+  setLayout: (p: Partial<Layout>) => void
   projectId: string | null
   openProject: (id: string) => void
   dayDate: Date
@@ -97,6 +105,17 @@ async function discardIfEmptyDraft(draftId: string | null) {
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
+type Layout = { sidebarW: number; peekW: number; uiScale: number; hourH: number }
+const LAYOUT_KEY = 'my-calendar.layout'
+export const LAYOUT_DEFAULT: Layout = { sidebarW: 280, peekW: 460, uiScale: 1, hourH: 48 }
+function loadLayout(): Partial<Layout> {
+  try {
+    return JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
 export const useUI = create<UI>((set, get) => ({
   mode: prefs.mode === 'project' ? 'calendar' : (prefs.mode ?? 'calendar'),
   filters: { ...DEFAULT_FILTERS, ...prefs.filters },
@@ -112,6 +131,18 @@ export const useUI = create<UI>((set, get) => ({
   dayDate: new Date(),
   timerPanel: false,
   assistantOpen: false,
+  templates: null,
+  ...LAYOUT_DEFAULT,
+  ...loadLayout(),
+  setLayout: (patch) => {
+    set(patch)
+    const { sidebarW, peekW, uiScale, hourH } = get()
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify({ sidebarW, peekW, uiScale, hourH }))
+    } catch {
+      /* ignore */
+    }
+  },
   projectId: null,
   openProject: (projectId) => {
     const { draftId, selectedId } = get()

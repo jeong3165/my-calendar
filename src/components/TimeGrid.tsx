@@ -10,7 +10,6 @@ import { atMinutes, hm, ymd } from '../lib/date'
 import { dayItems, layoutColumns, timedSegment, isTimed } from '../lib/items'
 import { Checkbox, Icon, ItemChip, toggleDone } from './ui'
 
-const H = 48 // 1시간 높이(px)
 const SNAP = 15
 const snap = (m: number) => Math.round(m / SNAP) * SNAP
 const floorSnap = (m: number) => Math.floor(m / SNAP) * SNAP
@@ -33,6 +32,7 @@ function useNow() {
 export function TimeGrid({ days }: { days: Date[] }) {
   const all = useCalendarItems()
   const { open, selectedId, setDate, setView } = useUI()
+  const H = useUI((s) => s.hourH) // 1시간 높이(px): 설정·Ctrl+휠로 조절
   const items = useMemo(() => expandItems(all, days[0], addDays(days[days.length - 1], 1)), [all, days])
   const sessions = useSessions(ymd(days[0]), ymd(days[days.length - 1]))
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -55,10 +55,29 @@ export function TimeGrid({ days }: { days: Date[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstKey, n])
 
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault() // 브라우저 확대 대신 시간 칸 높이를 바꾼다
+      const { hourH, setLayout } = useUI.getState()
+      const next = Math.round(Math.min(120, Math.max(28, hourH * (e.deltaY < 0 ? 1.12 : 1 / 1.12))))
+      if (next === hourH) return
+      const y = (e.clientY - el.getBoundingClientRect().top) / (useUI.getState().uiScale || 1)
+      const anchorMin = ((el.scrollTop + y) / hourH) * 60
+      setLayout({ hourH: next })
+      requestAnimationFrame(() => (el.scrollTop = (anchorMin / 60) * next - y))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
   function pos(clientX: number, clientY: number) {
     const r = colsRef.current!.getBoundingClientRect()
     const day = clamp(Math.floor(((clientX - r.left) / r.width) * n), 0, n - 1)
-    const min = clamp(((clientY - r.top) / H) * 60, 0, 24 * 60)
+    const k = r.height / (24 * H) || 1 // 화면 크기(zoom) 배율: 실제로 그려진 높이에서 계산
+    const min = clamp(((clientY - r.top) / k / H) * 60, 0, 24 * 60)
     return { day, min }
   }
 
@@ -300,10 +319,10 @@ export function TimeGrid({ days }: { days: Date[] }) {
 
                   {/* 새 일정 드래그 미리보기 */}
                   {drag?.kind === 'create' && drag.day === i && drag.moved && (
-                    <Ghost a={Math.min(drag.anchor, drag.cur)} b={Math.max(drag.anchor + SNAP, drag.cur)} label="새 일정" />
+                    <Ghost H={H} a={Math.min(drag.anchor, drag.cur)} b={Math.max(drag.anchor + SNAP, drag.cur)} label="새 일정" />
                   )}
                   {/* 할 일 드롭 미리보기 */}
-                  {dropAt?.day === i && <Ghost a={dropAt.min} b={dropAt.min + 30} label={`${fmtMin(dropAt.min)}에 배치`} />}
+                  {dropAt?.day === i && <Ghost H={H} a={dropAt.min} b={dropAt.min + 30} label={`${fmtMin(dropAt.min)}에 배치`} />}
 
                   {/* 실제 집중 기록 (타이머) */}
                   {sessions
@@ -341,7 +360,7 @@ export function TimeGrid({ days }: { days: Date[] }) {
 
 const fmtMin = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 
-function Ghost({ a, b, label }: { a: number; b: number; label: string }) {
+function Ghost({ a, b, label, H }: { a: number; b: number; label: string; H: number }) {
   return (
     <div
       className="pointer-events-none absolute inset-x-[2px] z-20 rounded-[4px] border border-accent bg-accent-soft px-1.5 py-[3px] text-[12px] text-accent"

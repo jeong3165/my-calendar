@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { exportJSON, importJSON, useItems } from '../db'
-import { useUI } from '../store'
+import { LAYOUT_DEFAULT, useUI } from '../store'
+import { Resizer } from './Resizer'
 import type { Section } from '../types'
 import { allTags, colorVars, sectionTasks, tagColor } from '../lib/items'
 import { MiniCalendar } from './MiniCalendar'
@@ -10,6 +11,8 @@ import { SyncLabel } from './SettingsDialog'
 import { syncNow, useSync } from '../lib/sync'
 import { setSubscriptions, useSubs } from '../lib/subs'
 import { createProject, projectStats, useProjects } from '../lib/projects'
+import { useTemplates } from '../lib/templates'
+import type { TemplatesView } from './TemplatesDialog'
 
 const NAV: { s: Section; icon: IconName }[] = [
   { s: { kind: 'today' }, icon: 'today' },
@@ -21,7 +24,7 @@ const NAV: { s: Section; icon: IconName }[] = [
 const same = (a: Section, b: Section) => a.kind === b.kind && (a.kind !== 'tag' || (b.kind === 'tag' && a.tag === b.tag))
 
 export function Sidebar() {
-  const { section, setSection, toggleSidebar, setPalette, isMobile, sidebarOpen, setSidebar, setSettings } = useUI()
+  const { section, setSection, toggleSidebar, setPalette, isMobile, sidebarOpen, setSidebar, setSettings, sidebarW, setLayout } = useUI()
   const items = useItems()
   const tags = useMemo(() => allTags(items), [items])
   const fileRef = useRef<HTMLInputElement>(null)
@@ -32,7 +35,8 @@ export function Sidebar() {
 
   const body = (
     <aside
-      className={`flex h-full w-[280px] shrink-0 flex-col border-r border-line bg-sidebar ${isMobile ? 'fixed inset-y-0 left-0 z-50 shadow-pop' : ''}`}
+      className={`relative flex h-full shrink-0 flex-col border-r border-line bg-sidebar ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-[280px] shadow-pop' : ''}`}
+      style={isMobile ? undefined : { width: sidebarW }}
       aria-label="사이드바"
     >
       {/* 워크스페이스 */}
@@ -97,6 +101,8 @@ export function Sidebar() {
 
         <ProjectsSection />
 
+        <TemplatesSection />
+
         <SubsSection onSetup={() => setSettings(true, 'subs')} />
 
         <div className="mt-3 border-t border-line pt-3">
@@ -137,6 +143,7 @@ export function Sidebar() {
           }}
         />
       </div>
+      {!isMobile && <Resizer edge="right" value={sidebarW} min={220} max={440} onChange={(w) => setLayout({ sidebarW: w })} onReset={() => setLayout({ sidebarW: LAYOUT_DEFAULT.sidebarW })} label="사이드바 너비" />}
     </aside>
   )
 
@@ -276,6 +283,38 @@ function ProjectsSection() {
           </button>
           {showDone && done.map(row)}
         </>
+      )}
+    </div>
+  )
+}
+
+/** 사이드바: 템플릿 (누르면 바로 넣기 화면) */
+function TemplatesSection() {
+  const templates = useTemplates()
+  const [open, setOpen] = useState(false)
+  const show = (v: TemplatesView) => useUI.setState({ templates: v })
+  return (
+    <div className="px-1.5 pt-3">
+      <div className="flex items-center px-2 pb-1">
+        <button onClick={() => setOpen(!open)} className="flex flex-1 items-center gap-1 text-left text-[12px] font-medium text-fg3 hover:text-fg2">
+          템플릿 {templates.length > 0 && <span>{open ? '▾' : `▸ ${templates.length}`}</span>}
+        </button>
+        <button onClick={() => show({ view: 'list' })} className="grid h-5 w-5 place-items-center rounded text-fg3 hover:bg-hover hover:text-fg2" title="템플릿 관리" aria-label="템플릿 관리">
+          <Icon name="plus" size={13} />
+        </button>
+      </div>
+      {templates.length === 0 ? (
+        <button onClick={() => show({ view: 'list' })} className="w-full rounded-[6px] px-2 py-1 text-left text-[12px] text-fg3 hover:bg-hover">
+          자주 쓰는 할 일 묶음 저장하기 →
+        </button>
+      ) : (
+        open &&
+        templates.map((t) => (
+          <button key={t.id} onClick={() => show({ view: 'apply', id: t.id })} className="flex w-full items-center gap-2 rounded-[6px] px-2 py-[5px] text-left text-[14px] text-fg2 hover:bg-hover">
+            <span className="w-5 shrink-0 text-center text-[15px]">{t.icon ?? '📋'}</span>
+            <span className="min-w-0 flex-1 truncate">{t.title}</span>
+          </button>
+        ))
       )}
     </div>
   )

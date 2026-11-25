@@ -20,6 +20,7 @@ import { SyncAgent } from './components/SyncAgent'
 import { SubsAgent } from './components/SubsAgent'
 import { TimerWidget } from './components/TimerWidget'
 import { AssistantDialog } from './components/AssistantDialog'
+import { TemplatesDialog } from './components/TemplatesDialog'
 import { startFocus, toggle as toggleTimer, useTimer } from './lib/timer'
 import { resolveItem } from './lib/recur'
 import { db } from './db'
@@ -27,7 +28,7 @@ import { NotificationAgent } from './components/NotificationAgent'
 import { ScopeDialog } from './components/ScopeDialog'
 
 export default function App() {
-  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen } = useUI()
+  const { mode, view, date, selectedId, paletteOpen, isMobile, setMobile, importOpen, settingsOpen, toast, scopePrompt, assistantOpen, templates } = useUI()
   const [fileOver, setFileOver] = useState(false)
 
   // 화면 크기 감지
@@ -60,8 +61,8 @@ export default function App() {
         if (e.key === 'Escape') ui.scopePrompt.resolve(null)
         return
       }
-      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen) {
-        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false })
+      if (ui.settingsOpen || ui.importOpen || ui.assistantOpen || ui.templates) {
+        if (e.key === 'Escape') ui.settingsOpen ? ui.setSettings(false) : ui.importOpen ? ui.closeImport() : useUI.setState({ assistantOpen: false, templates: null })
         return
       }
       if (e.key === 'Escape') {
@@ -158,6 +159,12 @@ export default function App() {
     }
   }, [])
 
+  const uiScale = useUI((s) => s.uiScale)
+  useEffect(() => {
+    const root = document.getElementById('root')
+    if (root) root.style.zoom = uiScale === 1 ? '' : String(uiScale)
+  }, [uiScale])
+
   const days = useMemo(() => (view === 'week' ? weekDays(date) : [date]), [view, date])
 
   return (
@@ -184,6 +191,7 @@ export default function App() {
       {paletteOpen && <CommandPalette />}
       {importOpen && <ImportDialog />}
       {assistantOpen && <AssistantDialog />}
+      {templates && <TemplatesDialog />}
       {settingsOpen && <SettingsDialog />}
       {scopePrompt && <ScopeDialog />}
       <TimerWidget />

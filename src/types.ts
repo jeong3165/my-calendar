@@ -3,6 +3,13 @@ export type NotionColor = (typeof COLORS)[number]
 
 export type Priority = 'high' | 'normal' | 'low'
 
+/** 템플릿: 한 줄에 할 일 하나 (빠른 입력 문법 + 날짜 오프셋) */
+export type TemplateData = {
+  kind: 'list' | 'project' // 할 일 묶음 / 프로젝트째
+  text: string
+  project?: { color: NotionColor; icon?: string; note?: string }
+}
+
 /** 하위 할 일 */
 export type Subtask = { id: string; title: string; done: boolean }
 
@@ -27,7 +34,7 @@ export type Repeat = {
  */
 export type Item = {
   id: string
-  type: 'event' | 'task' | 'project'
+  type: 'event' | 'task' | 'project' | 'template'
   title: string
   start?: string
   end?: string
@@ -42,7 +49,8 @@ export type Item = {
   note?: string
   projectId?: string // 속한 프로젝트
   subtasks?: Subtask[] // 하위 할 일 (체크리스트)
-  icon?: string // 프로젝트 아이콘 (이모지)
+  icon?: string // 프로젝트·템플릿 아이콘 (이모지)
+  template?: TemplateData // 템플릿 내용
   repeat?: Repeat
   exdates?: string[] // 반복에서 빠진 날짜 (YYYY-MM-DD)
   doneDates?: string[] // 반복 할 일: 완료한 회차 날짜

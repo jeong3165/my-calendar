@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useUI } from '../store'
+import { LAYOUT_DEFAULT, useUI } from '../store'
 import { MODELS, loadSettings, saveSettings } from '../lib/importFiles'
 import { loadSync, saveSync, syncNow, testConnection, useSync } from '../lib/sync'
 import { Icon } from './ui'
@@ -12,11 +12,12 @@ export function SettingsDialog() {
 
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center bg-black/30 px-4 pt-[8vh]" onMouseDown={() => setSettings(false)}>
-      <div role="dialog" aria-label="설정" onMouseDown={(e) => e.stopPropagation()} className="shadow-pop flex max-h-[84vh] w-full max-w-[560px] flex-col rounded-[12px] bg-popover">
+      <div role="dialog" aria-label="설정" onMouseDown={(e) => e.stopPropagation()} className="shadow-pop flex max-h-[84vh] w-full max-w-[600px] flex-col rounded-[12px] bg-popover">
         <div className="flex items-center gap-2 border-b border-line px-5 pt-3">
           <div className="flex flex-1 gap-1" role="tablist">
             {(
               [
+                ['display', '화면'],
                 ['sync', 'GitHub 동기화'],
                 ['subs', '구독 캘린더'],
                 ['notify', '알림'],
@@ -38,7 +39,7 @@ export function SettingsDialog() {
             <Icon name="x" size={16} />
           </button>
         </div>
-        <div className="min-h-0 overflow-y-auto">{tab === 'ai' ? <AITab /> : tab === 'notify' ? <NotifyTab /> : tab === 'subs' ? <SubsTab /> : <SyncTab />}</div>
+        <div className="min-h-0 overflow-y-auto">{tab === 'display' ? <DisplayTab /> : tab === 'ai' ? <AITab /> : tab === 'notify' ? <NotifyTab /> : tab === 'subs' ? <SubsTab /> : <SyncTab />}</div>
       </div>
     </div>
   )
@@ -378,6 +379,51 @@ function NotifyTab() {
         <li>항목마다 알림은 상세 화면의 🔔 알림에서 바꿀 수 있어요. 반복 일정은 모든 회차에 적용돼요.</li>
         <li>알림 켜기는 기기(브라우저)마다 따로 해야 해요. 휴대폰에서는 "홈 화면에 추가"한 앱으로 열어 두세요.</li>
       </ul>
+    </div>
+  )
+}
+
+/* ───────── 화면 크기 ───────── */
+function DisplayTab() {
+  const { uiScale, hourH, sidebarW, peekW, setLayout } = useUI()
+  const row = (label: string, hint: string, control: React.ReactNode) => (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[13px] font-medium">{label}</span>
+      {control}
+      <span className="text-[12px] text-fg3">{hint}</span>
+    </div>
+  )
+  return (
+    <div className="flex flex-col gap-5 p-5">
+      {row(
+        `화면 크기 ${Math.round(uiScale * 100)}%`,
+        '글자·버튼·칸이 함께 커지거나 작아져요. 이 브라우저에만 적용돼요.',
+        <div className="flex items-center gap-2">
+          <button onClick={() => setLayout({ uiScale: Math.max(0.8, Math.round((uiScale - 0.05) * 100) / 100) })} className="h-8 w-8 rounded-[6px] border border-line-strong text-[16px] hover:bg-hover" aria-label="작게">
+            −
+          </button>
+          <input type="range" min={0.8} max={1.4} step={0.05} value={uiScale} onChange={(e) => setLayout({ uiScale: Number(e.target.value) })} className="flex-1 accent-[var(--accent)]" aria-label="화면 크기" />
+          <button onClick={() => setLayout({ uiScale: Math.min(1.4, Math.round((uiScale + 0.05) * 100) / 100) })} className="h-8 w-8 rounded-[6px] border border-line-strong text-[16px] hover:bg-hover" aria-label="크게">
+            +
+          </button>
+        </div>,
+      )}
+      {row(
+        `캘린더 시간 칸 높이 ${hourH}px (1시간)`,
+        '주·일 보기에서 Ctrl(⌘) + 마우스 휠로도 바꿀 수 있어요. 높이면 짧은 일정도 글씨가 잘 보여요.',
+        <input type="range" min={28} max={120} step={2} value={hourH} onChange={(e) => setLayout({ hourH: Number(e.target.value) })} className="accent-[var(--accent)]" aria-label="시간 칸 높이" />,
+      )}
+      {row(
+        `사이드바 ${sidebarW}px · 상세 패널 ${peekW}px`,
+        '사이드바 오른쪽 경계, 상세 패널 왼쪽 경계를 끌어서 바꿀 수 있어요. 경계를 두 번 누르면 기본값으로 돌아가요.',
+        <div className="flex flex-wrap gap-2">
+          <input type="range" min={220} max={440} value={sidebarW} onChange={(e) => setLayout({ sidebarW: Number(e.target.value) })} className="flex-1 accent-[var(--accent)]" aria-label="사이드바 너비" />
+          <input type="range" min={360} max={760} value={peekW} onChange={(e) => setLayout({ peekW: Number(e.target.value) })} className="flex-1 accent-[var(--accent)]" aria-label="상세 패널 너비" />
+        </div>,
+      )}
+      <button onClick={() => setLayout(LAYOUT_DEFAULT)} className="self-start rounded-[6px] border border-line-strong px-3 py-1.5 text-[13px] hover:bg-hover">
+        모두 기본값으로
+      </button>
     </div>
   )
 }

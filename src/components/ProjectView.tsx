@@ -7,6 +7,7 @@ import { parseYmd, relDay, ymd } from '../lib/date'
 import { colorVars, tagColor, taskKey } from '../lib/items'
 import { parseQuick, parsedToItem } from '../lib/parse'
 import { deleteProject, PROJECT_ICONS, projectStats, subtaskProgress } from '../lib/projects'
+import { templateFromProject } from '../lib/templates'
 import { statusOf } from '../lib/dbview'
 import { fmtMinutes } from '../lib/review'
 import { Checkbox, FocusButton, Icon, toggleDone } from './ui'
@@ -177,13 +178,19 @@ function ProjectPage({ p, items }: { p: Item; items: Item[] }) {
           다른 곳에서 할 일을 만들 때 <code className="rounded bg-hover px-1">@{p.title.replace(/\s+/g, '') || '프로젝트'}</code> 를 붙이면 이 프로젝트로 들어와요. 상세 화면의 "프로젝트" 속성으로도 옮길 수 있어요.
         </p>
         <button
+          onClick={() => useUI.setState({ templates: { view: 'edit', seed: { name: p.title || '프로젝트 템플릿', icon: p.icon ?? '📁', data: templateFromProject(p, items) } } })}
+          className="mt-3 flex items-center gap-1 rounded-[6px] px-2 py-1 text-[13px] text-fg2 hover:bg-hover"
+        >
+          <Icon name="checklist" size={14} /> 템플릿으로 저장 <span className="text-fg3">(다음에 같은 프로젝트를 한 번에 만들기)</span>
+        </button>
+        <button
           onClick={async () => {
             if (!confirm(`'${p.title || '이름 없는 프로젝트'}' 프로젝트를 지울까요?\n안에 있던 할 일과 일정은 지워지지 않고 남아요.`)) return
             await deleteProject(p.id)
             setMode('calendar')
             showToast('프로젝트를 지웠어요. 할 일은 그대로 남아 있어요.')
           }}
-          className="mt-3 flex items-center gap-1 rounded-[6px] px-2 py-1 text-[13px] text-fg3 hover:bg-hover hover:text-danger"
+          className="flex items-center gap-1 rounded-[6px] px-2 py-1 text-[13px] text-fg3 hover:bg-hover hover:text-danger"
         >
           <Icon name="trash" size={14} /> 프로젝트 삭제
         </button>

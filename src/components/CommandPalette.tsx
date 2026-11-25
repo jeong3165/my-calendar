@@ -64,6 +64,8 @@ export function CommandPalette() {
       { id: 'notify', icon: 'bell', label: '알림 설정', run: () => ui.setSettings(true, 'notify') },
       { id: 'sync', icon: 'upload', label: 'GitHub 동기화 설정 / 지금 동기화', run: () => ui.setSettings(true, 'sync') },
       { id: 'today', icon: 'sun', label: '오늘로 이동', hint: '.', run: () => ui.goToday() },
+      { id: 'display', icon: 'settings', label: '화면 크기 조절 (글자·시간 칸·패널 너비)', run: () => ui.setSettings(true, 'display') },
+      { id: 'templates', icon: 'checklist', label: '템플릿에서 추가 / 템플릿 관리', run: () => useUI.setState({ templates: { view: 'list' } }) },
       { id: 'habits', icon: 'flame', label: '습관 기록 보기', hint: 'H', run: () => ui.setMode('habits') },
       { id: 'assistant', icon: 'sparkle', label: 'AI 일정 비서에게 부탁하기', hint: 'A', run: () => useUI.setState({ assistantOpen: true }) },
       { id: 'focus', icon: 'clock', label: '집중 타이머 시작', hint: 'F', run: () => void startFocus() },
@@ -83,6 +85,7 @@ export function CommandPalette() {
 
     if (query) {
       const found = items
+        .filter((it) => it.type !== 'template')
         .filter((it) => it.title.toLowerCase().includes(lc) || it.tags.some((t) => t.toLowerCase().includes(lc.replace(/^#/, ''))) || it.note?.toLowerCase().includes(lc))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, 8)

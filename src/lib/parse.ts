@@ -47,7 +47,8 @@ function toHM(m: RegExpMatchArray, offset: number): { h: number; m: number } | n
   return { h: h % 24, m: min }
 }
 
-export function parseQuick(input: string, now = new Date()): Parsed {
+/** opts.noDate: 날짜·반복 단어(오늘, 매주 …)는 해석하지 않고 제목에 그대로 둔다 (템플릿용) */
+export function parseQuick(input: string, now = new Date(), opts: { noDate?: boolean } = {}): Parsed {
   let s = ` ${input} `
   const tags: string[] = []
   let priority: Priority | undefined
@@ -69,7 +70,7 @@ export function parseQuick(input: string, now = new Date()): Parsed {
   })
 
   // ── 반복 ──
-  const rep = parseRepeat(s, today)
+  const rep = opts.noDate ? null : parseRepeat(s, today)
   let repeatDate: Date | undefined
   let repeat: Repeat | undefined
   if (rep) {
@@ -125,7 +126,7 @@ export function parseQuick(input: string, now = new Date()): Parsed {
       },
     ],
   ]
-  for (const [re, fn] of rules) {
+  for (const [re, fn] of opts.noDate ? [] : rules) {
     const m = s.match(re)
     if (!m) continue
     const d = fn(m)

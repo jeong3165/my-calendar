@@ -4,7 +4,8 @@ import { createItem, deleteSession, updateItem, useItemSessions } from '../db'
 import { fmtMinutes } from '../lib/review'
 import { fmtWhen } from './viewUtil'
 import { useCalendarItems } from '../lib/subs'
-import { useUI } from '../store'
+import { LAYOUT_DEFAULT, useUI } from '../store'
+import { Resizer } from './Resizer'
 import type { Item, Priority } from '../types'
 import { COLORS, COLOR_LABEL, PRIORITY_LABEL, STATUS_LABEL, type Status } from '../types'
 import { statusOf } from '../lib/dbview'
@@ -17,13 +18,14 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 export function PeekPanel() {
-  const { selectedId, close, isMobile } = useUI()
+  const { selectedId, close, isMobile, peekW, setLayout } = useUI()
   const items = useCalendarItems()
   const item = selectedId ? resolveItem(items, selectedId) : undefined
-  if (!item || item.type === 'project') return null // 프로젝트는 프로젝트 페이지에서
+  if (!item || item.type === 'project' || item.type === 'template') return null // 프로젝트는 프로젝트 페이지에서
   return (
     <aside
-      className={`flex min-h-0 flex-col bg-bg ${isMobile ? 'fixed inset-0 z-50' : 'w-[440px] shrink-0 border-l border-line xl:w-[480px]'}`}
+      className={`relative flex min-h-0 flex-col bg-bg ${isMobile ? 'fixed inset-0 z-50' : 'shrink-0 border-l border-line'}`}
+      style={isMobile ? undefined : { width: peekW }}
       aria-label="상세 보기"
     >
       <div className="flex items-center gap-1 px-3 py-2">
@@ -50,6 +52,7 @@ export function PeekPanel() {
           <Icon name="trash" size={15} /> 삭제
         </button>}
       </div>
+      {!isMobile && <Resizer edge="left" value={peekW} min={360} max={760} onChange={(w) => setLayout({ peekW: w })} onReset={() => setLayout({ peekW: LAYOUT_DEFAULT.peekW })} label="상세 패널 너비" />}
       {item.readonly ? <ReadonlyBody key={item.id} item={item} /> : <PeekBody key={item.id} item={item} allItems={items} />}
     </aside>
   )
